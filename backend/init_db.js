@@ -16,14 +16,22 @@ export async function initDB() {
     const connection = await mysql.createConnection({
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || ''
+        password: process.env.DB_PASSWORD || '',
+        port: process.env.DB_PORT || 3306,
+        ssl: process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined
     });
 
     try {
         const dbName = process.env.DB_NAME || 'hall_booking_system';
 
-        await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
-        console.log(`✅ Database '${dbName}' ensured.`);
+        // NOTE: Many cloud providers don't allow creating DBs via connection, they give you a specific DB.
+        // We'll wrap this in try-catch to ignore if we can't create it (it likely exists).
+        try {
+            await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+            console.log(`✅ Database '${dbName}' ensured.`);
+        } catch (e) {
+            console.log(`⚠️  Could not check/create DB (might be restricted cloud user): ${e.message}`);
+        }
         await connection.end();
 
         // Connect to DB to run schema
@@ -32,6 +40,8 @@ export async function initDB() {
             user: process.env.DB_USER || 'root',
             password: process.env.DB_PASSWORD || '',
             database: dbName,
+            port: process.env.DB_PORT || 3306,
+            ssl: process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined,
             multipleStatements: true
         });
 
