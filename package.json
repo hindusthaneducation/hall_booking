@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "vite preview", // Render often uses 'start' by default
+    "start": "vite preview",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "server": "node server.js"
+    "server": "cd backend && node server.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",
