@@ -56,7 +56,9 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME || 'hall_booking_system',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0
 });
 
 // Test Database Connection
