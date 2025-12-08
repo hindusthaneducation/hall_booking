@@ -60,6 +60,7 @@ const pool = mysql.createPool({
     queueLimit: 0,
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
+    connectTimeout: 60000, // Wait 60s before timeout
     ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
         ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
         : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
