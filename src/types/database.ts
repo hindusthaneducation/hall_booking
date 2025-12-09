@@ -14,18 +14,21 @@ export interface Database {
           id: string;
           name: string;
           short_name: string;
+          institution_id: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           name: string;
           short_name: string;
+          institution_id?: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
           short_name?: string;
+          institution_id?: string;
           created_at?: string;
         };
       };
@@ -39,6 +42,7 @@ export interface Database {
           seating_capacity: number;
           hall_type: string;
           is_active: boolean;
+          institution_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -51,6 +55,7 @@ export interface Database {
           seating_capacity?: number;
           hall_type?: string;
           is_active?: boolean;
+          institution_id?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -63,6 +68,7 @@ export interface Database {
           seating_capacity?: number;
           hall_type?: string;
           is_active?: boolean;
+          institution_id?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -74,6 +80,7 @@ export interface Database {
           full_name: string;
           role: 'department_user' | 'principal' | 'super_admin';
           department_id: string | null;
+          institution_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -83,6 +90,7 @@ export interface Database {
           full_name: string;
           role: 'department_user' | 'principal' | 'super_admin';
           department_id?: string | null;
+          institution_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -92,6 +100,7 @@ export interface Database {
           full_name?: string;
           role?: 'department_user' | 'principal' | 'super_admin';
           department_id?: string | null;
+          institution_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };

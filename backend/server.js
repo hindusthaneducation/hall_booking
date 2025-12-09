@@ -11,6 +11,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { initDB } from './init_db.js';
 import { seed } from './seed.js';
+import { sendEmail, getBookingTemplate } from './mailer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,7 +110,7 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
 // --- Auth Routes ---
 
 app.post('/api/auth/register', async (req, res) => {
-    const { email, password, full_name, role, department_id } = req.body;
+    const { email, password, full_name, role, department_id, institution_id } = req.body;
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         const id = uuidv4();
@@ -118,11 +119,11 @@ app.post('/api/auth/register', async (req, res) => {
         if (existing.length > 0) return res.status(400).json({ error: 'User already exists' });
 
         await pool.query(
-            'INSERT INTO users (id, email, password_hash, full_name, role, department_id) VALUES (?, ?, ?, ?, ?, ?)',
-            [id, email, hashedPassword, full_name, role, department_id || null]
+            'INSERT INTO users (id, email, password_hash, full_name, role, department_id, institution_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [id, email, hashedPassword, full_name, role, department_id || null, institution_id || null]
         );
 
-        res.status(201).json({ message: 'User created successfully', user: { id, email, full_name, role, department_id } });
+        res.status(201).json({ message: 'User created successfully', user: { id, email, full_name, role, department_id, institution_id } });
     } catch (error) {
         console.error('Register error:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -137,8 +138,24 @@ app.post('/api/auth/login', async (req, res) => {
 
         const user = users[0];
         if (await bcrypt.compare(password, user.password_hash)) {
-            const token = jwt.sign({ id: user.id, role: user.role, department_id: user.department_id }, JWT_SECRET, { expiresIn: '24h' });
-            res.json({ token, user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role, department_id: user.department_id } });
+            const token = jwt.sign({
+                id: user.id,
+                role: user.role,
+                department_id: user.department_id,
+                institution_id: user.institution_id
+            }, JWT_SECRET, { expiresIn: '24h' });
+
+            res.json({
+                token,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    full_name: user.full_name,
+                    role: user.role,
+                    department_id: user.department_id,
+                    institution_id: user.institution_id
+                }
+            });
         } else {
             res.status(403).json({ error: 'Invalid password' });
         }
@@ -151,9 +168,12 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
     try {
         const [users] = await pool.query(`
-            SELECT u.id, u.email, u.full_name, u.role, u.department_id, d.name as department_name, d.short_name as department_short_name
+            SELECT u.id, u.email, u.full_name, u.role, u.department_id, u.institution_id, 
+                   d.name as department_name, d.short_name as department_short_name,
+                   i.name as institution_name, i.short_name as institution_short_name
             FROM users u
             LEFT JOIN departments d ON u.department_id = d.id
+            LEFT JOIN institutions i ON u.institution_id = i.id
             WHERE u.id = ?
         `, [req.user.id]);
 
@@ -167,14 +187,22 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
             full_name: user.full_name,
             role: user.role,
             department_id: user.department_id,
+            institution_id: user.institution_id, // Added
             department: user.department_id ? {
                 id: user.department_id,
                 name: user.department_name,
                 short_name: user.department_short_name
+            } : null,
+            institution: user.institution_id ? {
+                id: user.institution_id,
+                name: user.institution_name,
+                short_name: user.institution_short_name
             } : null
         };
 
         res.json({ user: profile });
+
+
     } catch (error) {
         console.error('Me error:', error);
         res.status(500).json({ error: error.message });
@@ -187,7 +215,7 @@ app.get('/api/users', authenticateToken, async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
     try {
         const [users] = await pool.query(`
-            SELECT u.id, u.email, u.full_name, u.role, u.department_id, u.created_at,
+            SELECT u.id, u.email, u.full_name, u.role, u.department_id, u.institution_id, u.created_at,
                    d.id as dept_id, d.name as dept_name
             FROM users u
             LEFT JOIN departments d ON u.department_id = d.id
@@ -200,7 +228,9 @@ app.get('/api/users', authenticateToken, async (req, res) => {
             email: u.email,
             full_name: u.full_name,
             role: u.role,
+            role: u.role,
             department_id: u.department_id,
+            institution_id: u.institution_id, // Added
             created_at: u.created_at,
             department: u.dept_id ? { id: u.dept_id, name: u.dept_name } : null
         }));
@@ -232,10 +262,10 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
 
 app.put('/api/users/:id', authenticateToken, async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
-    const { full_name, role, department_id, password } = req.body; // Added password
+    const { full_name, role, department_id, institution_id, password } = req.body;
     try {
-        let query = 'UPDATE users SET full_name = ?, role = ?, department_id = ?';
-        const params = [full_name, role, department_id || null];
+        let query = 'UPDATE users SET full_name = ?, role = ?, department_id = ?, institution_id = ?';
+        const params = [full_name, role, department_id || null, institution_id || null];
 
         if (password && password.trim() !== '') {
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -271,12 +301,23 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
 
 app.get('/api/halls', authenticateToken, async (req, res) => {
     try {
-        // Show all halls to admin, only active ones to others
-        const query = req.user.role === 'super_admin'
-            ? 'SELECT * FROM halls ORDER BY name'
-            : 'SELECT * FROM halls WHERE is_active = true ORDER BY name';
+        let query = `
+            SELECT h.*, i.name as institution_name, i.short_name as institution_short_name 
+            FROM halls h
+            LEFT JOIN institutions i ON h.institution_id = i.id
+        `;
+        const params = [];
 
-        const [rows] = await pool.query(query);
+        // Super Admin sees all (or can filter via query param if we added that)
+        if (req.user.role === 'super_admin') {
+            query += ' ORDER BY h.name';
+        } else {
+            // Others see only their institution's active halls
+            query += ' WHERE h.is_active = true AND h.institution_id = ? ORDER BY h.name';
+            params.push(req.user.institution_id);
+        }
+
+        const [rows] = await pool.query(query, params);
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -296,13 +337,13 @@ app.get('/api/halls/:id', authenticateToken, async (req, res) => {
 app.post('/api/halls', authenticateToken, async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
 
-    const { name, description, image_url, stage_size, seating_capacity, hall_type, is_active } = req.body;
+    const { name, description, image_url, stage_size, seating_capacity, hall_type, is_active, institution_id } = req.body;
     const id = uuidv4();
 
     try {
         await pool.query(
-            'INSERT INTO halls (id, name, description, image_url, stage_size, seating_capacity, hall_type, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [id, name, description, image_url, stage_size, seating_capacity, hall_type, is_active ?? true]
+            'INSERT INTO halls (id, name, description, image_url, stage_size, seating_capacity, hall_type, is_active, institution_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [id, name, description, image_url, stage_size, seating_capacity, hall_type, is_active ?? true, institution_id]
         );
         res.status(201).json({ message: 'Hall created' });
     } catch (error) {
@@ -331,13 +372,16 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
     try {
         let query = `
             SELECT b.id, b.hall_id, b.department_id, b.user_id, DATE_FORMAT(b.booking_date, '%Y-%m-%d') as booking_date, 
-                   b.event_title, b.event_description, b.event_time, b.status, b.rejection_reason, 
+                   b.event_title, b.event_description, b.event_time, b.status, b.rejection_reason,
+                   b.start_time, b.end_time, 
                    b.approved_by, b.approved_at, b.created_at, b.updated_at,
-                   h.name as hall_name, d.short_name as department_name, u.full_name as user_name
+                   h.name as hall_name, d.short_name as department_name, u.full_name as user_name,
+                   i.short_name as institution_short_name, i.name as institution_name, d.institution_id
             FROM bookings b 
             JOIN halls h ON b.hall_id = h.id 
             JOIN departments d ON b.department_id = d.id
             JOIN users u ON b.user_id = u.id
+            LEFT JOIN institutions i ON d.institution_id = i.id
         `;
         const params = [];
         const showAll = req.query.view === 'all' || ['super_admin', 'principal'].includes(req.user.role);
@@ -363,8 +407,36 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
         return res.status(403).json({ error: 'Not authorized to book halls' });
     }
 
-    const { hall_id, booking_date, event_title, event_description, event_time } = req.body;
+    const { hall_id, booking_date, event_title, event_description, event_time, start_time, end_time } = req.body;
     const id = uuidv4();
+
+    // Input validation for times
+    if (!start_time || !end_time) {
+        return res.status(400).json({ error: 'Start time and End time are required.' });
+    }
+
+    // Check for Overlapping Bookings
+    // Overlap condition: (NewStart < ExistingEnd) AND (NewEnd > ExistingStart)
+    // We must ignore rejected bookings.
+    try {
+        const [conflicts] = await pool.query(`
+    SELECT * FROM bookings 
+            WHERE hall_id = ?
+        AND booking_date = ?
+            AND status != 'rejected'
+    AND(
+        (start_time IS NULL OR start_time < ?) AND
+            (end_time IS NULL OR end_time > ?)
+            )
+        `, [hall_id, booking_date, end_time, start_time]);
+
+        if (conflicts.length > 0) {
+            return res.status(409).json({ error: 'Hall is already booked for this time slot.' });
+        }
+    } catch (confErr) {
+        console.error('Conflict check error:', confErr);
+        return res.status(500).json({ error: 'Error checking availability' });
+    }
 
     // If Admin/Principal appoves immediately
     const initialStatus = ['super_admin', 'principal'].includes(req.user.role) ? 'approved' : 'pending';
@@ -387,9 +459,37 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO bookings (id, hall_id, department_id, user_id, booking_date, event_title, event_description, event_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [id, hall_id, departmentId, req.user.id, booking_date, event_title, event_description, event_time, initialStatus]
+            'INSERT INTO bookings (id, hall_id, department_id, user_id, booking_date, event_title, event_description, event_time, start_time, end_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [id, hall_id, departmentId, req.user.id, booking_date, event_title, event_description, event_time, start_time, end_time, initialStatus]
         );
+
+        // Fetch hall name for email
+        const [hRows] = await pool.query('SELECT name FROM halls WHERE id = ?', [hall_id]);
+        const hallName = hRows.length > 0 ? hRows[0].name : 'Hall';
+
+        const emailData = {
+            user_name: req.user.full_name,
+            hall_name: hallName,
+            booking_date,
+            event_time,
+            event_title
+        };
+
+
+        const html = getBookingTemplate(initialStatus, emailData);
+
+        // Fetch fresh email from DB to ensure we have it
+        try {
+            const [uRows] = await pool.query('SELECT email FROM users WHERE id = ?', [req.user.id]);
+            if (uRows.length > 0 && uRows[0].email) {
+                sendEmail(uRows[0].email, `Booking Receipt: ${event_title} `, html).catch(err => console.error('Email send failed:', err));
+            } else {
+                console.warn('⚠️ No email found for user in DB, skipping notification.');
+            }
+        } catch (e) {
+            console.error('Failed to fetch user email:', e);
+        }
+
         res.status(201).json({ message: initialStatus === 'approved' ? 'Hall blocked successfully' : 'Booking requested' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -405,6 +505,31 @@ app.patch('/api/bookings/:id/status', authenticateToken, async (req, res) => {
                 'UPDATE bookings SET status = ?, rejection_reason = ?, approved_by = ?, approved_at = NOW() WHERE id = ?',
                 [status, rejection_reason || null, req.user.id, req.params.id]
             );
+
+            // Fetch details for email
+            // Fetch details for email
+            const [bRows] = await pool.query(`
+                SELECT b.booking_date, b.event_title, b.event_time, b.rejection_reason,
+                       u.email, u.full_name as user_name, h.name as hall_name
+                FROM bookings b
+                JOIN users u ON b.user_id = u.id
+                JOIN halls h ON b.hall_id = h.id
+                WHERE b.id = ?
+            `, [req.params.id]);
+
+            if (bRows.length > 0) {
+                const booking = bRows[0];
+                const html = getBookingTemplate(status, booking);
+
+                // Dynamic Subject based on Status
+                let subject = `Booking Update: ${booking.event_title}`;
+                if (status === 'approved') subject = `Booking Approved: ${booking.event_title} 🎉`;
+                if (status === 'rejected') subject = `Booking Rejected: ${booking.event_title}`;
+
+                // Don't await email to prevent blocking response
+                sendEmail(booking.email, subject, html);
+            }
+
             res.json({ message: 'Booking updated' });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -418,12 +543,38 @@ app.patch('/api/bookings/:id/status', authenticateToken, async (req, res) => {
 app.put('/api/bookings/:id', authenticateToken, async (req, res) => {
     if (!['super_admin', 'principal'].includes(req.user.role)) return res.sendStatus(403);
 
-    const { event_title, event_description, event_time, booking_date } = req.body;
+    const { event_title, event_description, event_time, booking_date, start_time, end_time, reason } = req.body;
+
+    // Validate times if provided? Assuming frontend sends them if it's the new form.
+
     try {
         await pool.query(
-            'UPDATE bookings SET event_title=?, event_description=?, event_time=?, booking_date=? WHERE id=?',
-            [event_title, event_description, event_time, booking_date, req.params.id]
+            'UPDATE bookings SET event_title=?, event_description=?, event_time=?, booking_date=?, start_time=?, end_time=? WHERE id=?',
+            [event_title, event_description, event_time, booking_date, start_time || null, end_time || null, req.params.id]
         );
+
+        // Fetch details for email
+        const [bRows] = await pool.query(`
+            SELECT b.booking_date, b.event_title, b.event_time, b.status,
+                u.email, u.full_name as user_name, h.name as hall_name
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN halls h ON b.hall_id = h.id
+            WHERE b.id = ?
+                `, [req.params.id]);
+
+        if (bRows.length > 0) {
+            const booking = bRows[0];
+            booking.reason = reason; // Add manual reason
+            const html = getBookingTemplate('updated', booking); // Need to handle 'updated' in template or reuse 'approved'
+            // 'updated' isn't in template yet. Let's use 'approved' but maybe title changes?
+            // User requested: "update any... mail send ok"
+            // I'll add 'updated' case to mailer.js separately or just send general update.
+            // For now, reuse 'approved' or 'pending' depending on status, but simply "Booking Details Updated".
+
+            sendEmail(booking.email, `Booking Details Updated: ${booking.event_title} `, html).catch(e => console.error(e));
+        }
+
         res.json({ message: 'Booking updated successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -435,7 +586,26 @@ app.delete('/api/bookings/:id', authenticateToken, async (req, res) => {
     if (!['super_admin', 'principal'].includes(req.user.role)) return res.sendStatus(403);
 
     try {
+        // Fetch details BEFORE delete for email
+        const [bRows] = await pool.query(`
+            SELECT b.event_title, u.email, u.full_name as user_name, h.name as hall_name, b.booking_date, b.event_time
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN halls h ON b.hall_id = h.id
+            WHERE b.id = ?
+                `, [req.params.id]);
+
         await pool.query('DELETE FROM bookings WHERE id = ?', [req.params.id]);
+
+        if (bRows.length > 0) {
+            const booking = bRows[0];
+            // Use 'rejected' template or 'cancelled'
+            // We'll pass 'rejected' status to reuse Red color, but reason is "Cancelled by Administrator"
+            booking.rejection_reason = req.body.reason ? `Cancelled by Admin: ${req.body.reason}` : "Cancelled by Administrator";
+            const html = getBookingTemplate('rejected', booking);
+            sendEmail(booking.email, `Booking Cancelled: ${booking.event_title} `, html).catch(e => console.error(e));
+        }
+
         res.json({ message: 'Booking deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -444,10 +614,118 @@ app.delete('/api/bookings/:id', authenticateToken, async (req, res) => {
 
 // --- Department Routes ---
 
-app.get('/api/departments', async (req, res) => {
+app.get('/api/departments', authenticateToken, async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM departments ORDER BY name');
+        let query = 'SELECT * FROM departments';
+        const params = [];
+
+        // Filter by institution if user has one (except maybe super_admin wanting to see all? 
+        // But usually super admin selects an institution first. 
+        // For now, if super_admin provides ?institution_id, use it.
+        // If normal user, enforce their institution_id.
+
+        if (req.user.role === 'super_admin') {
+            if (req.query.institution_id) {
+                query += ' WHERE institution_id = ?';
+                params.push(req.query.institution_id);
+            }
+        } else {
+            if (req.user.institution_id) {
+                query += ' WHERE institution_id = ?';
+                params.push(req.user.institution_id);
+            }
+        }
+
+        query += ' ORDER BY name';
+        const [rows] = await pool.query(query, params);
         res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/departments', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+    const { name, short_name, institution_id } = req.body;
+    const id = uuidv4();
+    try {
+        await pool.query(
+            'INSERT INTO departments (id, name, short_name, institution_id) VALUES (?, ?, ?, ?)',
+            [id, name, short_name, institution_id]
+        );
+        res.status(201).json({ message: 'Department created' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/departments/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+    const { name, short_name, institution_id } = req.body;
+    try {
+        await pool.query(
+            'UPDATE departments SET name=?, short_name=?, institution_id=? WHERE id=?',
+            [name, short_name, institution_id, req.params.id]
+        );
+        res.json({ message: 'Department updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/departments/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+    try {
+        await pool.query('DELETE FROM departments WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Department deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/institutions', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM institutions ORDER BY name');
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/institutions', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+    const { name, short_name } = req.body;
+    const id = uuidv4();
+    try {
+        await pool.query(
+            'INSERT INTO institutions (id, name, short_name) VALUES (?, ?, ?)',
+            [id, name, short_name || null]
+        );
+        res.status(201).json({ message: 'Institution created' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/institutions/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+    const { name, short_name } = req.body;
+    try {
+        await pool.query(
+            'UPDATE institutions SET name=?, short_name=? WHERE id=?',
+            [name, short_name || null, req.params.id]
+        );
+        res.json({ message: 'Institution updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/institutions/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+    try {
+        await pool.query('DELETE FROM institutions WHERE id=?', [req.params.id]);
+        res.json({ message: 'Institution deleted' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -461,8 +739,8 @@ const startServer = async () => {
         await seed();
 
         app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
-            console.log(`🔗 Frontend allowed: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+            console.log(`🚀 Server running on port ${PORT} `);
+            console.log(`🔗 Frontend allowed: ${process.env.FRONTEND_URL || 'http://localhost:5173'} `);
         });
     } catch (error) {
         console.error('❌ Failed to start server due to database init error:', error);

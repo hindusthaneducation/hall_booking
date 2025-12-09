@@ -6,7 +6,10 @@ import { api } from '../lib/api';
 
 type BookingRow = Database['public']['Tables']['bookings']['Row'];
 type Booking = BookingRow & {
+
     department_name: string;
+    start_time?: string;
+    end_time?: string;
 };
 
 interface EventDetailsModalProps {
@@ -24,14 +27,20 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
     const [formData, setFormData] = useState({
         event_title: booking.event_title,
         event_description: booking.event_description || '',
-        event_time: booking.event_time
+        event_time: booking.event_time,
+        start_time: booking.start_time || '',
+        end_time: booking.end_time || '',
+        event_time: booking.event_time,
+        start_time: booking.start_time || '',
+        end_time: booking.end_time || '',
+        booking_date: booking.booking_date.split('T')[0], // Ensure date format
+        reason: '' // Reason for update
     });
 
     const formatDate = (dateString: string) => {
-        // Handle "YYYY-MM-DD" or ISO string safely
         const str = dateString.split('T')[0];
         const [year, month, day] = str.split('-').map(Number);
-        const date = new Date(year, month - 1, day); // Local midnight
+        const date = new Date(year, month - 1, day);
 
         return date.toLocaleDateString('en-US', {
             weekday: 'long',
@@ -55,13 +64,26 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
     const handleUpdate = async () => {
         setLoading(true);
         try {
+            // Update event_time string if times changed
+            const timeString = (formData.start_time && formData.end_time)
+                ? `${formData.start_time} - ${formData.end_time}`
+                : formData.event_time;
+
             const { error } = await api.put(`/bookings/${booking.id}`, {
                 event_title: formData.event_title,
                 event_description: formData.event_description,
-                event_time: formData.event_time
+                event_time: timeString,
+                booking_date: formData.booking_date,
+                start_time: formData.start_time,
+                event_time: timeString,
+                booking_date: formData.booking_date,
+                start_time: formData.start_time,
+                end_time: formData.end_time,
+                reason: formData.reason
             });
             if (error) throw error;
             setIsEditing(false);
+            onClose(); // Close modal after successful update
             if (onUpdate) onUpdate();
             // We might want to close or just show updated state? 
             // Staying open with updated state is nice.
@@ -74,11 +96,12 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
     };
 
     const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this booking? This action cannot be undone.')) return;
+        const reason = prompt("Please enter a reason for deleting this booking:");
+        if (reason === null) return; // Cancelled
 
         setLoading(true);
         try {
-            const { error } = await api.delete(`/bookings/${booking.id}`);
+            const { error } = await api.delete(`/bookings/${booking.id}`, { data: { reason } });
             if (error) throw error;
             onClose();
             if (onUpdate) onUpdate();
@@ -91,7 +114,7 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -155,12 +178,21 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
                             <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-900">Time</p>
                                 {isEditing ? (
-                                    <input
-                                        type="text"
-                                        value={formData.event_time}
-                                        onChange={e => setFormData({ ...formData, event_time: e.target.value })}
-                                        className="w-full px-2 py-1 mt-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                    />
+                                    <div className="flex gap-2 mt-1">
+                                        <input
+                                            type="time"
+                                            value={formData.start_time}
+                                            onChange={e => setFormData({ ...formData, start_time: e.target.value })}
+                                            className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                        />
+                                        <span className="self-center">-</span>
+                                        <input
+                                            type="time"
+                                            value={formData.end_time}
+                                            onChange={e => setFormData({ ...formData, end_time: e.target.value })}
+                                            className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                        />
+                                    </div>
                                 ) : (
                                     <p className="text-sm">{formData.event_time}</p>
                                 )}
@@ -200,6 +232,22 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
                                     </div>
                                 </div>
                             )
+                        )}
+                        {isEditing && (
+                            <div className="flex items-start text-gray-600 border-t pt-4 mt-4">
+                                <div className="w-5 h-5 mr-3 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-900 mb-1">Reason for Change (Required)</label>
+                                    <textarea
+                                        value={formData.reason}
+                                        onChange={e => setFormData({ ...formData, reason: e.target.value })}
+                                        rows={2}
+                                        placeholder="e.g., Change of schedule, Hall maintenance..."
+                                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                        required
+                                    />
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>

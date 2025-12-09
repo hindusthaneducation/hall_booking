@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDateLocal } from '../../lib/utils';
-import { Building2, Users, Maximize, ArrowLeft } from 'lucide-react';
+import { Building2, Users, Maximize, ArrowLeft, X } from 'lucide-react';
 import { Calendar } from '../../components/Calendar';
 import { BookingForm } from '../../components/BookingForm';
 import { SuccessModal } from '../../components/SuccessModal';
@@ -17,6 +17,7 @@ type Hall = Database['public']['Tables']['halls']['Row'];
 type BookingRow = Database['public']['Tables']['bookings']['Row'];
 type Booking = BookingRow & {
   department_name: string; // from API
+  institution_short_name?: string;
 };
 
 interface CalendarDay {
@@ -40,7 +41,10 @@ export function HallDetails() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [bookingsMap, setBookingsMap] = useState<Map<string, Booking>>(new Map());
+
+  const [bookingsMap, setBookingsMap] = useState<Map<string, Booking[]>>(new Map());
+  const [showDayView, setShowDayView] = useState(false);
+  const [selectedDayBookings, setSelectedDayBookings] = useState<Booking[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -78,16 +82,14 @@ export function HallDetails() {
     // Optimization: Backend could support date range params, but fetching all is fine for MVP
     const { data: bookings } = await api.get<Booking[]>('/bookings?view=all');
 
-    const bookingMap = new Map<string, Booking>();
+    const bookingMap = new Map<string, Booking[]>();
 
     if (bookings) {
       bookings.forEach((booking) => {
-        // Filter by hall_id and IGNORE rejected bookings (so date becomes available again)
         if (booking.hall_id === id && booking.status !== 'rejected') {
-          // If multiple bookings exist for same date (e.g. one cancelled, one new),
-          // this simple map might need specific logic, but with 'rejected' filtered, it helps.
-          // Ideally rely on backend to give "active" booking, but client-side filter works for now.
-          bookingMap.set(booking.booking_date.split('T')[0], booking);
+          const dateStr = booking.booking_date.split('T')[0];
+          const existing = bookingMap.get(dateStr) || [];
+          bookingMap.set(dateStr, [...existing, booking]);
         }
       });
     }
@@ -109,10 +111,14 @@ export function HallDetails() {
       let status: 'available' | 'pending' | 'booked' = 'available';
       let departmentShortName: string | undefined;
 
-      if (booking) {
-        status = booking.status === 'approved' ? 'booked' : 'pending';
-        // department_name is 'IT', 'CSE' etc (short_name from query)
-        departmentShortName = booking.department_name;
+      if (booking && booking.length > 0) {
+        // If any approved, mark partial/booked?
+        // Let's just show 'booked' if any exist, but we allow clicking.
+        const hasApproved = booking.some(b => b.status === 'approved');
+        status = hasApproved ? 'booked' : 'pending';
+        // department_name from first booking?
+        departmentShortName = booking[0].department_name;
+        if (booking.length > 1) departmentShortName = `${booking.length} Slots`;
       }
 
       days.push({
@@ -132,13 +138,16 @@ export function HallDetails() {
   const handleDateClick = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const dateStr = formatDateLocal(date);
-    const existingBooking = bookingsMap.get(dateStr);
 
-    if (existingBooking) {
-      // If there is a booking (pending or approved), show details
-      setSelectedBooking(existingBooking);
-      setShowEventModal(true);
+    // Allow seeing past details? Maybe. But definitively future.
+
+    const dateStr = formatDateLocal(date);
+    const existingBookings = bookingsMap.get(dateStr);
+
+    if (existingBookings && existingBookings.length > 0) {
+      setSelectedDate(date);
+      setSelectedDayBookings(existingBookings);
+      setShowDayView(true);
       return;
     }
 
@@ -258,6 +267,66 @@ export function HallDetails() {
           }}
           onUpdate={generateCalendar} // Refresh calendar on Edit/Delete
         />
+      )}
+      {showDayView && selectedDate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">
+                Bookings for {selectedDate.toLocaleDateString()}
+              </h3>
+              <button onClick={() => setShowDayView(false)}><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {selectedDayBookings.map(b => (
+                <div
+                  key={b.id}
+                  onClick={() => {
+                    setSelectedBooking(b);
+                    setShowEventModal(true);
+                    // Optional: keep DayView open? or close it?
+                    // If we close DayView, user returns to calendar. 
+                    // If we keep it open, the modal opens on top. 
+                    // Let's keep DayView open or maybe close it if Modal takes over.
+                    // Modal is 'fixed inset-0 z-50'. DayView is z-50.
+                    // Better to close DayView or ensure Modal is z-51.
+                    // Let's close DayView for simplicity.
+                    // setShowDayView(false); 
+                    // Wait, user might want to see others.
+                    // Let's try z-index stacking or just leave it. 
+                    // Current Modal z-50. DayView z-50.
+                    // I'll make Modal z-[60].
+                  }}
+                  className={`p-3 rounded border cursor-pointer hover:shadow-md transition-shadow ${b.status === 'approved' ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}
+                >
+                  <div className="flex justify-between">
+                    <span className="font-medium">{b.event_time}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${b.status === 'approved' ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}`}>{b.status}</span>
+                  </div>
+                  <p className="font-semibold mt-1">{b.event_title}</p>
+                  <p className="text-sm text-gray-600">
+                    By: {b.department_name}
+                    {b.institution_short_name && <span className="ml-1 text-gray-500">({b.institution_short_name})</span>}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-2 hover:underline">View/Edit Details</p>
+                </div>
+              ))}
+            </div>
+
+            {selectedDate >= new Date(new Date().setHours(0, 0, 0, 0)) && (
+              <button
+                onClick={() => {
+                  setShowDayView(false);
+                  setShowBookingForm(true);
+                }}
+                className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Book New Slot
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

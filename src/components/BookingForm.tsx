@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDateLocal } from '../lib/utils';
-import { X, Upload, FileText, AlertTriangle } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, Building2 } from 'lucide-react';
 
 interface BookingFormProps {
   hallId: string;
@@ -20,9 +20,10 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
   const [formData, setFormData] = useState({
     eventTitle: '',
     eventDescription: '',
-    eventTime: '',
+    startTime: '',
+    endTime: '',
   });
-  const [file, setFile] = useState<File | null>(null);
+  // const [file, setFile] = useState<File | null>(null); // Feature removed
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,11 +33,9 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
     try {
       let approvalLetterUrl = '';
 
-      if (file) {
-        // NOTE: File upload requires backend storage implementation. 
-        // Temporarily disabled for migration to Node/MySQL without object storage service.
-        console.warn('File upload skipped - backend endpoint not yet implemented');
-      }
+      let approvalLetterUrl = '';
+
+      // if (file) { ... } logic removed
 
       const { error: insertError } = await api.post('/bookings', {
         hall_id: hallId,
@@ -45,7 +44,9 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
         booking_date: formatDateLocal(date),
         event_title: formData.eventTitle,
         event_description: formData.eventDescription,
-        event_time: formData.eventTime,
+        event_time: `${formData.startTime} - ${formData.endTime}`,
+        start_time: formData.startTime, // HH:mm format
+        end_time: formData.endTime, // HH:mm format
         approval_letter_url: approvalLetterUrl,
         status: 'pending',
       });
@@ -127,67 +128,36 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
               />
             </div>
 
-            <div>
-              <label htmlFor="eventTime" className="block text-sm font-medium text-gray-700 mb-1">
-                Event Time
-              </label>
-              <input
-                id="eventTime"
-                type="text"
-                value={formData.eventTime}
-                onChange={(e) => setFormData({ ...formData, eventTime: e.target.value })}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., 9:00 AM - 5:00 PM"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="approvalLetter" className="block text-sm font-medium text-gray-700 mb-1">
-                Approval Letter / Document
-              </label>
-
-              <div className="mb-2 p-2 bg-yellow-50 border border-yellow-100 rounded text-xs text-yellow-700 flex items-start">
-                <AlertTriangle className="w-4 h-4 mr-1 flex-shrink-0" />
-                <span>Upload currently disabled during system maintenance.</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Time
+                </label>
+                <input
+                  id="startTime"
+                  type="time"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
-
-              <div className="mt-1 opacity-50 pointer-events-none">
-                {file ? (
-                  <div className="flex items-center justify-between p-3 border border-gray-300 rounded-md">
-                    <div className="flex items-center">
-                      <FileText className="w-5 h-5 text-gray-600 mr-2" />
-                      <span className="text-sm text-gray-700">{file.name}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFile(null)}
-                      className="text-red-600 hover:text-red-700 text-sm font-medium"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex items-center justify-center px-4 py-8 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-400 transition-colors">
-                    <div className="text-center">
-                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">PDF, PNG, JPG up to 10MB</p>
-                    </div>
-                    <input
-                      id="approvalLetter"
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                      disabled
-                    />
-                  </label>
-                )}
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
+                  End Time
+                </label>
+                <input
+                  id="endTime"
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
+
+            {/* File Upload Removed as per request */}
           </div>
 
           <div className="flex justify-end space-x-3 mt-6">

@@ -168,17 +168,7 @@ export function MyBookings() {
                   <p className="text-gray-600 mb-4">{booking.event_description}</p>
                 )}
 
-                {booking.approval_letter_url && (
-                  <a
-                    href={booking.approval_letter_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
-                  >
-                    <FileText className="w-4 h-4 mr-1" />
-                    View Approval Letter
-                  </a>
-                )}
+                {/* Approval Letter Feature Removed */}
 
                 {booking.status === 'rejected' && booking.rejection_reason && (
                   <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">

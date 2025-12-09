@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { Building2, Plus, Edit, Trash2, X, Upload } from 'lucide-react';
 import type { Database } from '../../types/database';
+import type { Institution } from '../../lib/types';
 
 type Hall = Database['public']['Tables']['halls']['Row'];
 type HallInsert = Database['public']['Tables']['halls']['Insert'];
 
 export function HallsManagement() {
-  const [halls, setHalls] = useState<Hall[]>([]);
+  const [halls, setHalls] = useState<any[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingHall, setEditingHall] = useState<Hall | null>(null);
@@ -19,20 +21,24 @@ export function HallsManagement() {
     seating_capacity: 0,
     hall_type: '',
     is_active: true,
+    institution_id: '',
   });
 
   useEffect(() => {
-    fetchHalls();
+    fetchData();
   }, []);
 
-  const fetchHalls = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await api.get<Hall[]>('/halls');
+      const [hallsRes, institutionsRes] = await Promise.all([
+        api.get<Hall[]>('/halls'),
+        api.get<Institution[]>('/institutions'),
+      ]);
 
-      if (error) throw error;
-      if (data) setHalls(data);
+      if (hallsRes.data) setHalls(hallsRes.data);
+      if (institutionsRes.data) setInstitutions(institutionsRes.data);
     } catch (error) {
-      console.error('Error fetching halls:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -42,20 +48,18 @@ export function HallsManagement() {
     e.preventDefault();
 
     try {
-      if (editingHall) {
-        const { error } = await api.put(`/halls/${editingHall.id}`, {
-          ...formData,
-        });
+      const payload = { ...formData };
 
+      if (editingHall) {
+        const { error } = await api.put(`/halls/${editingHall.id}`, payload);
         if (error) throw error;
       } else {
-        const { error } = await api.post('/halls', formData);
-
+        const { error } = await api.post('/halls', payload);
         if (error) throw error;
       }
 
       resetForm();
-      fetchHalls();
+      fetchData();
     } catch (error) {
       console.error('Error saving hall:', error);
       alert('Failed to save hall');
@@ -72,6 +76,7 @@ export function HallsManagement() {
       seating_capacity: hall.seating_capacity,
       hall_type: hall.hall_type,
       is_active: hall.is_active,
+      institution_id: hall.institution_id || '',
     });
     setShowForm(true);
   };
@@ -84,7 +89,7 @@ export function HallsManagement() {
       });
 
       if (error) throw error;
-      fetchHalls();
+      fetchData();
     } catch (error) {
       console.error('Error toggling hall:', error);
       alert('Failed to update hall status');
@@ -102,19 +107,11 @@ export function HallsManagement() {
 
     setUploading(true);
     try {
-      // Use api.post but we need to pass FormData which api wrapper might handle or we might need custom header?
-      // Our api wrapper usually expects JSON. Let's see api.ts content via memory or just use fetch for this one special case if api wrapper is strict?
-      // Wait, axios handles FormData automatically if passed. Let's assume api client (axios-like) does too or use fetch with token.
-      // Checking api.ts earlier: it sets Content-Type application/json by default.
-      // So we should probably use a direct fetch or modify api.ts. 
-      // Safest: direct fetch with token.
-
       const token = localStorage.getItem('token');
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
-          // No Content-Type header for FormData, browser sets it with boundary
         },
         body: formDataObj
       });
@@ -143,16 +140,11 @@ export function HallsManagement() {
       seating_capacity: 0,
       hall_type: '',
       is_active: true,
+      institution_id: '',
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
     <div>
@@ -171,43 +163,50 @@ export function HallsManagement() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {halls.map((hall) => (
-          <div
-            key={hall.id}
-            className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${!hall.is_active ? 'opacity-60' : ''
-              }`}
-          >
-            <div className="aspect-video bg-gray-200 overflow-hidden">
-              <img src={hall.image_url} alt={hall.name} className="w-full h-full object-cover" />
-            </div>
-            <div className="p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">{hall.name}</h3>
-              <p className="text-sm text-gray-600 mb-3 line-clamp-2">{hall.description}</p>
-              <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
-                <span>{hall.hall_type}</span>
-                <span>{hall.seating_capacity} seats</span>
+        {halls.map((hall) => {
+          // Use joined data from backend OR fallback to lookup
+          const instName = hall.institution_short_name || hall.institution_name || institutions.find(i => i.id === hall.institution_id)?.short_name || institutions.find(i => i.id === hall.institution_id)?.name || '-';
+          return (
+            <div
+              key={hall.id}
+              className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${!hall.is_active ? 'opacity-60' : ''
+                }`}
+            >
+              <div className="aspect-video bg-gray-200 overflow-hidden">
+                <img src={hall.image_url} alt={hall.name} className="w-full h-full object-cover" />
               </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handleEdit(hall)}
-                  className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleToggleActive(hall)}
-                  className={`flex-1 px-3 py-2 rounded-md transition-colors ${hall.is_active
-                    ? 'bg-red-600 text-white hover:bg-red-700'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                >
-                  {hall.is_active ? 'Deactivate' : 'Activate'}
-                </button>
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">{hall.name}</h3>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded truncate max-w-[150px]" title={instName}>{instName}</span>
+                </div>
+                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{hall.description}</p>
+                <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                  <span>{hall.hall_type}</span>
+                  <span>{hall.seating_capacity} seats</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleEdit(hall)}
+                    className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(hall)}
+                    className={`flex-1 px-3 py-2 rounded-md transition-colors ${hall.is_active
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                  >
+                    {hall.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {showForm && (
@@ -228,6 +227,18 @@ export function HallsManagement() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
+              {/* Institution Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+                <select value={formData.institution_id || ''} onChange={(e) => setFormData({ ...formData, institution_id: e.target.value })} required className="w-full px-3 py-2 border rounded-md">
+                  <option value="">Select Institution</option>
+                  {institutions.map(inst => (
+                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Hall Name</label>
                 <input
@@ -275,8 +286,6 @@ export function HallsManagement() {
                     </div>
                   </label>
                 </div>
-                {/* Hidden input to ensure required validation? Or just rely on visual. Backend allows null/empty? Schema says not null? Let's keep it robust. */}
-                {/* User can still manually paste a URL if they really wanted to, but we only asked for upload. let's stick to upload. */}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

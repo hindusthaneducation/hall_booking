@@ -3,39 +3,53 @@ import { api } from '../../lib/api';
 import { Building2, Calendar, Clock, Filter } from 'lucide-react';
 import type { Database } from '../../types/database';
 
+import { useAuth } from '../../contexts/AuthContext';
+import type { Institution } from '../../lib/types';
+
 // Update Booking type to match the flat structure returned by server.js
 type BookingRow = Database['public']['Tables']['bookings']['Row'];
 type Booking = BookingRow & {
   hall_name: string;
   department_name: string;
   user_name: string;
+  institution_short_name?: string;
+  institution_name?: string;
+  institution_id?: string;
 };
 
 export function AllBookings() {
+  const { profile } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [institutionFilter, setInstitutionFilter] = useState<string>('all');
 
   useEffect(() => {
-    fetchBookings();
+    fetchData();
   }, []);
 
-  const fetchBookings = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await api.get<Booking[]>('/bookings');
+      const [bookingsRes, institutionsRes] = await Promise.all([
+        api.get<Booking[]>('/bookings'),
+        api.get<Institution[]>('/institutions')
+      ]);
 
-      if (error) throw error;
-      if (data) setBookings(data);
+      if (bookingsRes.data) setBookings(bookingsRes.data);
+      if (institutionsRes.data) setInstitutions(institutionsRes.data);
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const filteredBookings = bookings.filter((booking) => {
-    if (statusFilter === 'all') return true;
-    return booking.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    const matchesInstitution = institutionFilter === 'all' || booking.institution_id === institutionFilter;
+    return matchesStatus && matchesInstitution;
   });
 
   const getStatusColor = (status: string) => {
@@ -66,18 +80,36 @@ export function AllBookings() {
         <p className="text-gray-600">Complete booking history across all halls</p>
       </div>
 
-      <div className="mb-6 flex items-center space-x-2">
-        <Filter className="w-5 h-5 text-gray-600" />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
+      <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="flex items-center space-x-2">
+          <Filter className="w-5 h-5 text-gray-600" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+
+        {profile?.role === 'super_admin' && (
+          <div className="flex items-center space-x-2">
+            <Building2 className="w-5 h-5 text-gray-600" />
+            <select
+              value={institutionFilter}
+              onChange={(e) => setInstitutionFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Institutions</option>
+              {institutions.map(inst => (
+                <option key={inst.id} value={inst.id}>{inst.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {filteredBookings.length === 0 ? (
@@ -98,6 +130,9 @@ export function AllBookings() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Department
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Institution
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
@@ -129,6 +164,9 @@ export function AllBookings() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {booking.department_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {booking.institution_short_name || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center text-sm text-gray-900">

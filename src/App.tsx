@@ -13,6 +13,8 @@ import { Approvals } from './pages/principal/Approvals';
 import { AdminDashboard } from './pages/admin/Dashboard';
 import { HallsManagement } from './pages/admin/HallsManagement';
 import { UsersManagement } from './pages/admin/UsersManagement';
+import { InstitutionsManagement } from './pages/admin/InstitutionsManagement';
+import { DepartmentsManagement } from './pages/admin/DepartmentsManagement';
 import { Settings } from './pages/admin/Settings';
 import { AllBookings } from './pages/shared/AllBookings';
 
@@ -116,6 +118,26 @@ function App() {
               <ProtectedRoute allowedRoles={['super_admin']}>
                 <Layout>
                   <UsersManagement />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/institutions-management"
+            element={
+              <ProtectedRoute allowedRoles={['super_admin']}>
+                <Layout>
+                  <InstitutionsManagement />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/departments-management"
+            element={
+              <ProtectedRoute allowedRoles={['super_admin']}>
+                <Layout>
+                  <DepartmentsManagement />
                 </Layout>
               </ProtectedRoute>
             }

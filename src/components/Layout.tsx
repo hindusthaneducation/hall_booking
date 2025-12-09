@@ -11,6 +11,8 @@ import {
   LogOut,
   Menu,
   X,
+  School,
+  Layers,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -46,6 +48,8 @@ export function Layout({ children }: LayoutProps) {
     super_admin: [
       { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/approvals', icon: FileCheck, label: 'Pending Approvals' }, // New Access
+      { path: '/institutions-management', icon: School, label: 'Manage Institutions' },
+      { path: '/departments-management', icon: Layers, label: 'Manage Departments' },
       { path: '/halls-management', icon: Building2, label: 'Manage Halls' },
       { path: '/halls', icon: Calendar, label: 'Book Hall' },
       { path: '/users-management', icon: Users, label: 'Manage Users' },
@@ -81,7 +85,9 @@ export function Layout({ children }: LayoutProps) {
           <div className="flex items-center">
             <Building2 className="w-8 h-8 text-blue-600 mr-3" />
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">Hall Booking</h1>
+              <h1 className="text-lg font-semibold text-gray-900 leading-tight">
+                {profile?.institution?.name || profile?.institution?.short_name || 'Hall Booking'}
+              </h1>
               <p className="text-xs text-gray-500 capitalize">{profile?.role.replace('_', ' ')}</p>
             </div>
           </div>
