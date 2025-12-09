@@ -11,6 +11,20 @@ const __dirname = path.dirname(__filename);
 
 export async function initDB() {
     console.log('🔄 Initializing Database...');
+    console.log(`📡 Connecting to DB at ${process.env.DB_HOST}:${process.env.DB_PORT}...`);
+
+    // Debug: Check DNS resolution
+    try {
+        const dns = await import('dns');
+        const { promisify } = await import('util');
+        const lookup = promisify(dns.lookup);
+        if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') {
+            const { address } = await lookup(process.env.DB_HOST);
+            console.log(`🔍 DNS Resolution: ${process.env.DB_HOST} -> ${address}`);
+        }
+    } catch (dnsErr) {
+        console.error(`⚠️ DNS Lookup Failed for ${process.env.DB_HOST}:`, dnsErr.message);
+    }
 
     // Connect to check/create DB
     const connection = await mysql.createConnection({
