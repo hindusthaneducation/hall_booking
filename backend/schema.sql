@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS hall_booking_system;
-USE hall_booking_system;
+
 
 -- Institutions Table
 CREATE TABLE IF NOT EXISTS institutions (

@@ -13,44 +13,62 @@ export async function initDB() {
     console.log('🔄 Initializing Database...');
     console.log(`📡 Connecting to DB at ${process.env.DB_HOST}:${process.env.DB_PORT}...`);
 
-    // Debug: Check DNS resolution
     try {
-        const dns = await import('dns');
-        const { promisify } = await import('util');
-        const lookup = promisify(dns.lookup);
-        if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') {
-            const { address } = await lookup(process.env.DB_HOST);
-            console.log(`🔍 DNS Resolution: ${process.env.DB_HOST} -> ${address}`);
+        // Debug: Check DNS resolution
+        try {
+            const dns = await import('dns');
+            const { promisify } = await import('util');
+            const lookup = promisify(dns.lookup);
+            if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') {
+                const { address } = await lookup(process.env.DB_HOST);
+                console.log(`🔍 DNS Resolution: ${process.env.DB_HOST} -> ${address}`);
+            }
+        } catch (dnsErr) {
+            console.error(`⚠️ DNS Lookup Failed for ${process.env.DB_HOST}:`, dnsErr.message);
         }
-    } catch (dnsErr) {
-        console.error(`⚠️ DNS Lookup Failed for ${process.env.DB_HOST}:`, dnsErr.message);
-    }
 
-    // Connect to check/create DB
-    const connection = await mysql.createConnection({
-        host: process.env.DB_HOST || 'localhost',
-        user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || '',
-        port: process.env.DB_PORT || 3306,
-        port: process.env.DB_PORT || 3306,
-        connectTimeout: 60000,
-        ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
-            ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
-            : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
-    });
-
-    try {
         const dbName = process.env.DB_NAME || 'hall_booking_system';
 
-        // NOTE: Many cloud providers don't allow creating DBs via connection, they give you a specific DB.
-        // We'll wrap this in try-catch to ignore if we can't create it (it likely exists).
+        // Try connecting directly to the database first (fast path for cloud/shared hosting)
         try {
-            await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
-            console.log(`✅ Database '${dbName}' ensured.`);
-        } catch (e) {
-            console.log(`⚠️  Could not check/create DB (might be restricted cloud user): ${e.message}`);
+            const directConnection = await mysql.createConnection({
+                host: process.env.DB_HOST || 'localhost',
+                user: process.env.DB_USER || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: dbName,
+                port: process.env.DB_PORT || 3306,
+                connectTimeout: 60000,
+                ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
+                    ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
+                    : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+            });
+            await directConnection.end();
+            console.log(`✅ Successfully connected to existing database '${dbName}'`);
+        } catch (err) {
+            // If direct connection fails (e.g. DB doesn't exist), try connecting to server root to create it
+            if (err.code === 'BAD_DB_ERROR' || err.code === 'ER_BAD_DB_ERROR') {
+                console.log(`database '${dbName}' not found, attempting to create...`);
+                const rootConnection = await mysql.createConnection({
+                    host: process.env.DB_HOST || 'localhost',
+                    user: process.env.DB_USER || 'root',
+                    password: process.env.DB_PASSWORD || '',
+                    port: process.env.DB_PORT || 3306,
+                    connectTimeout: 60000,
+                    ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
+                        ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
+                        : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+                });
+                try {
+                    await rootConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+                    console.log(`✅ Database '${dbName}' created.`);
+                } catch (createErr) {
+                    console.warn(`⚠️ Could not create DB (might be restricted cloud user): ${createErr.message}`);
+                }
+                await rootConnection.end();
+            } else {
+                console.warn(`⚠️ Warning: Could not connect to DB '${dbName}' directly: ${err.message}`);
+            }
         }
-        await connection.end();
 
         // Connect to DB to run schema
         const pool = mysql.createPool({

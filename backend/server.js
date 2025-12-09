@@ -100,9 +100,7 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
         return res.status(400).json({ error: 'No file uploaded' });
     }
     // Return full URL
-    const fileUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}`.replace('5173', process.env.PORT || '3000') + `/uploads/${req.file.filename}`;
-    // Or just relative path if you prefer, but full URL is easier if strict separation
-    // Better: Use req.protocol + '://' + req.get('host') + '/uploads/' + req.file.filename
+    // Use req.protocol + '://' + req.get('host') for reliable URL generation
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     res.json({ url: `${baseUrl}/uploads/${req.file.filename}` });
 });

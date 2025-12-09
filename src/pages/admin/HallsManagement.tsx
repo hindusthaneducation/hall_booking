@@ -108,7 +108,8 @@ export function HallsManagement() {
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/upload`, {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
