@@ -37,7 +37,7 @@ export async function initDB() {
                 password: process.env.DB_PASSWORD || '',
                 database: dbName,
                 port: process.env.DB_PORT || 3306,
-                connectTimeout: 10000,
+                connectTimeout: 60000,
                 ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
                     ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
                     : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
@@ -53,7 +53,7 @@ export async function initDB() {
                     user: process.env.DB_USER || 'root',
                     password: process.env.DB_PASSWORD || '',
                     port: process.env.DB_PORT || 3306,
-                    connectTimeout: 10000,
+                    connectTimeout: 60000,
                     ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
                         ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
                         : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
@@ -77,7 +77,7 @@ export async function initDB() {
             password: process.env.DB_PASSWORD || '',
             database: dbName,
             port: process.env.DB_PORT || 3306,
-            connectTimeout: 10000,
+            connectTimeout: 60000,
             ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
                 ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
                 : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined),
