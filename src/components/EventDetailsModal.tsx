@@ -30,9 +30,7 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
         event_time: booking.event_time,
         start_time: booking.start_time || '',
         end_time: booking.end_time || '',
-        event_time: booking.event_time,
-        start_time: booking.start_time || '',
-        end_time: booking.end_time || '',
+
         booking_date: booking.booking_date.split('T')[0], // Ensure date format
         reason: '' // Reason for update
     });
@@ -75,9 +73,7 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
                 event_time: timeString,
                 booking_date: formData.booking_date,
                 start_time: formData.start_time,
-                event_time: timeString,
-                booking_date: formData.booking_date,
-                start_time: formData.start_time,
+
                 end_time: formData.end_time,
                 reason: formData.reason
             });

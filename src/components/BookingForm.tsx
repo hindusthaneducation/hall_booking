@@ -33,7 +33,7 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
     try {
       let approvalLetterUrl = '';
 
-      let approvalLetterUrl = '';
+
 
       // if (file) { ... } logic removed
 
