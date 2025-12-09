@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "server": "cd backend && node server.js"
+    "server": "cd backend && node server.js",
+    "postinstall": "npm install --prefix backend"
   },
   "dependencies": {
     "clsx": "^2.1.1",
