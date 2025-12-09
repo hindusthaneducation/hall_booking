@@ -731,19 +731,31 @@ app.delete('/api/institutions/:id', authenticateToken, async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
+// Health Check Endpoint
+app.get('/health', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        connection.release();
+        res.json({ status: 'ok', db: 'connected' });
+    } catch (error) {
+        res.status(200).json({ status: 'ok', db: 'disconnected', error: error.message });
+    }
+});
+
 const startServer = async () => {
+    // Try to initialize DB, but don't block server startup
     try {
         await initDB();
         await seed();
-
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT} `);
-            console.log(`🔗 Frontend allowed: ${process.env.FRONTEND_URL || 'http://localhost:5173'} `);
-        });
     } catch (error) {
-        console.error('❌ Failed to start server due to database init error:', error);
-        process.exit(1);
+        console.error('⚠️  Database initialization failed (Server will start anyway):', error.message);
+        // We do NOT exit here, allowing the server to start (for health checks / Render)
     }
+
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT} `);
+        console.log(`🔗 Frontend allowed: ${process.env.FRONTEND_URL || 'http://localhost:5173'} `);
+    });
 };
 
 startServer();

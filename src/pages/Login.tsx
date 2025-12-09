@@ -89,14 +89,14 @@ export function Login() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
+          {/* <div className="mt-6 text-center text-sm text-gray-600">
             <p>
               Don't have an account?{' '}
               <Link to="/register" className="text-blue-600 hover:text-blue-500 font-medium">
                 Sign up
               </Link>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
