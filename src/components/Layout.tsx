@@ -14,6 +14,7 @@ import {
   School,
   Layers,
 } from 'lucide-react';
+import HindusthanLogo from '../images/hindusthan_logo.webp';
 import { useState, useEffect } from 'react';
 
 interface LayoutProps {
@@ -86,10 +87,12 @@ export function Layout({ children }: LayoutProps) {
       <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-20">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center">
-            {profile?.institution?.logo_url ? (
+            {profile?.role === 'super_admin' ? (
+              <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+            ) : profile?.institution?.logo_url ? (
               <img src={`${import.meta.env.VITE_API_BASE_URL}${profile.institution.logo_url}`} alt="Logo" className="w-8 h-8 object-contain mr-2" />
             ) : (
-              <Building2 className="w-6 h-6 text-blue-600 mr-2" />
+              <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
             )}
             <span className="font-semibold text-gray-900">
               {profile?.role === 'super_admin' ? 'Hindusthan Admin' : (profile?.institution?.short_name || 'Hall Booking')}

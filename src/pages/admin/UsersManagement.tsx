@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { Users, Plus, Edit, X, Trash2, ArrowLeft, School, Shield, Search, GraduationCap } from 'lucide-react';
+import { Users, Plus, Edit, X, Trash2, ArrowLeft, Search, GraduationCap } from 'lucide-react';
 import type { Database } from '../../types/database';
 import type { Institution } from '../../lib/types';
+import HindusthanLogo from '../../images/hindusthan_logo.webp';
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   department?: Database['public']['Tables']['departments']['Row'];
@@ -166,7 +167,13 @@ export function UsersManagement() {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center mb-2">
-                {isSystem ? <Shield className="w-6 h-6 mr-2 text-purple-600" /> : <School className="w-6 h-6 mr-2 text-indigo-600" />}
+                {isSystem ? (
+                  <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+                ) : institution?.logo_url ? (
+                  <img src={`${import.meta.env.VITE_API_BASE_URL}${institution.logo_url}`} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+                ) : (
+                  <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+                )}
                 {institution?.name}
               </h1>
               <div className="flex flex-wrap gap-4 text-sm text-gray-600 ml-8">
@@ -315,7 +322,7 @@ export function UsersManagement() {
             className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
           >
             <div className="p-4 bg-purple-50 rounded-full mb-4 group-hover:bg-purple-100 transition-colors">
-              <Shield className="w-8 h-8 text-purple-600" />
+              <img src={HindusthanLogo} alt="System Logo" className="w-8 h-8 object-contain" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Hindusthan Educational Institutions</h3>
             <p className="text-sm text-gray-500">Super Admins / System</p>
@@ -334,8 +341,12 @@ export function UsersManagement() {
               onClick={() => { setSelectedInstId(inst.id); setSearchQuery(''); }}
               className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
             >
-              <div className="p-4 bg-indigo-50 rounded-full mb-4 group-hover:bg-indigo-100 transition-colors">
-                <School className="w-8 h-8 text-indigo-600" />
+              <div className="h-16 w-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+                {inst.logo_url ? (
+                  <img src={`${import.meta.env.VITE_API_BASE_URL}${inst.logo_url}`} alt={inst.name} className="h-10 w-10 object-contain" />
+                ) : (
+                  <img src={HindusthanLogo} alt="Logo" className="h-10 w-10 object-contain" />
+                )}
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">{inst.name}</h3>
               <p className="text-sm text-gray-500">{inst.short_name}</p>

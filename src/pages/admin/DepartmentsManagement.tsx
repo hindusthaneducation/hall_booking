@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { Plus, Edit, Trash2, X, Search, ArrowLeft, School, FolderTree, GraduationCap, Users } from 'lucide-react';
 import type { Department, Institution, User } from '../../lib/types';
+import HindusthanLogo from '../../images/hindusthan_logo.webp';
 
 type Profile = User; // Alias for convenience if needed, or just use User
 
@@ -234,23 +235,28 @@ export function DepartmentsManagement() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredInstitutions.map(inst => {
-                    const count = departments.filter(d => d.institution_id === inst.id).length;
+                    const deptCount = departments.filter(d => d.institution_id === inst.id).length;
+                    const logo = inst.logo_url ? `${import.meta.env.VITE_API_BASE_URL}${inst.logo_url}` : null;
                     return (
                         <div
                             key={inst.id}
                             onClick={() => { setSelectedInstId(inst.id); setSearchQuery(''); }}
-                            className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
+                            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-shadow text-center flex flex-col items-center"
                         >
-                            <div className="p-4 bg-indigo-50 rounded-full mb-4 group-hover:bg-indigo-100 transition-colors">
-                                <School className="w-8 h-8 text-indigo-600" />
+                            <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+                                {logo ? (
+                                    <img src={logo} alt={inst.name} className="h-10 w-10 object-contain" />
+                                ) : (
+                                    <img src={HindusthanLogo} alt="Logo" className="h-10 w-10 object-contain" />
+                                )}
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-1">{inst.name}</h3>
-                            <p className="text-sm text-gray-500">{inst.short_name}</p>
-                            <div className="mt-4 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                                {count} Departments
+                            <p className="text-sm text-gray-500 mb-4">{inst.short_name}</p>
+                            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {deptCount} Departments
                             </div>
                         </div>
-                    )
+                    );
                 })}
                 {filteredInstitutions.length === 0 && (
                     <div className="col-span-full text-center py-12 text-gray-500">

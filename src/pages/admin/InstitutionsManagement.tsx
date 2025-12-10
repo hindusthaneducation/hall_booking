@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { Plus, Edit, Trash2, X, School } from 'lucide-react';
 import type { Institution } from '../../lib/types';
+import HindusthanLogo from '../../images/hindusthan_logo.webp';
 
 export function InstitutionsManagement() {
     const [institutions, setInstitutions] = useState<Institution[]>([]);
@@ -124,7 +125,7 @@ export function InstitutionsManagement() {
                                     {item.logo_url ? (
                                         <img src={`${import.meta.env.VITE_API_BASE_URL}${item.logo_url}`} alt="Logo" className="h-10 w-10 object-contain" />
                                     ) : (
-                                        <School className="w-10 h-10 text-gray-300" />
+                                        <img src={HindusthanLogo} alt="Logo" className="h-10 w-10 object-contain" />
                                     )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{item.name}</div></td>

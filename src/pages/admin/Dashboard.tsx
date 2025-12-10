@@ -3,18 +3,18 @@ import { api } from '../../lib/api';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-    Building2,
     Users,
-    School,
     ArrowRight,
     GraduationCap,
-    UserPlus,
-    Clock,
     CheckCircle,
     XCircle,
-    CalendarDays
+    CalendarDays,
+    Clock,
+    School,
+    Building2
 } from 'lucide-react';
 import type { Database } from '../../types/database';
+import HindusthanLogo from '../../images/hindusthan_logo.webp';
 
 type Institution = Database['public']['Tables']['institutions']['Row'];
 type Hall = Database['public']['Tables']['halls']['Row'];
@@ -77,14 +77,14 @@ export function AdminDashboard() {
             {/* Top Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard
-                    icon={<School className="w-8 h-8 text-indigo-600" />}
+                    icon={<img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain" />}
                     bg="bg-indigo-50"
                     label="Total Colleges"
                     value={stats.colleges}
                     desc="Institutions"
                 />
                 <StatCard
-                    icon={<Building2 className="w-8 h-8 text-blue-600" />}
+                    icon={<img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain" />}
                     bg="bg-blue-50"
                     label="Total Halls"
                     value={stats.halls}

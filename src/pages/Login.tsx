@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Building2 } from 'lucide-react';
+import HindusthanLogo from '../images/hindusthan_logo.webp';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -35,7 +35,7 @@ export function Login() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
           <div className="flex items-center justify-center mb-8">
-            <Building2 className="w-10 h-10 text-blue-600 mr-3" />
+            <img src={HindusthanLogo} alt="Logo" className="w-12 h-12 object-contain mr-3" />
             <h1 className="text-2xl font-semibold text-gray-900">Hall Booking System</h1>
           </div>
 

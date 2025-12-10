@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Search, Building2, Users, School, MapPin, ArrowRight, ArrowLeft } from 'lucide-react';
 import type { Database } from '../../types/database';
 import type { Institution } from '../../lib/types';
+import HindusthanLogo from '../../images/hindusthan_logo.webp';
 
 type Hall = Database['public']['Tables']['halls']['Row'];
 
@@ -108,10 +109,14 @@ export function HallsList() {
             </button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <School className="w-8 h-8 mr-3 text-indigo-600" />
+                {institution.logo_url ? (
+                  <img src={`${import.meta.env.VITE_API_BASE_URL}${institution.logo_url}`} alt="Logo" className="h-10 w-10 object-contain mr-3" />
+                ) : (
+                  <img src={HindusthanLogo} alt="Logo" className="h-10 w-10 object-contain mr-3" />
+                )}
                 {institution.name}
               </h1>
-              <p className="text-gray-500 mt-1 ml-11">Browse available halls and facilities</p>
+              <p className="text-gray-500 mt-1 ml-14">Browse available halls and facilities</p>
             </div>
           </div>
 
@@ -145,8 +150,8 @@ export function HallsList() {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Building2 className="w-12 h-12 text-gray-300" />
+                  <div className="w-full h-full flex items-center justify-center p-8 bg-gray-50">
+                    <img src={HindusthanLogo} alt="Hall" className="w-24 h-24 object-contain opacity-50" />
                   </div>
                 )}
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-indigo-600 shadow-sm">
@@ -230,8 +235,12 @@ export function HallsList() {
               className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-md hover:border-indigo-100 transition-all group"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                  <School className="w-8 h-8 text-indigo-600" />
+                <div className="h-16 w-16 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors flex items-center justify-center overflow-hidden">
+                  {inst.logo_url ? (
+                    <img src={`${import.meta.env.VITE_API_BASE_URL}${inst.logo_url}`} alt={inst.name} className="h-12 w-12 object-contain" />
+                  ) : (
+                    <img src={HindusthanLogo} alt="Logo" className="h-12 w-12 object-contain" />
+                  )}
                 </div>
                 <div className="bg-gray-100 px-3 py-1 rounded-full text-xs font-medium text-gray-600">
                   {hallCount} Halls
