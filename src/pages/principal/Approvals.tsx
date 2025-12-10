@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Building2, Calendar, Clock, FileText, User } from 'lucide-react';
+import { Building2, Calendar, Clock, FileText, User, School } from 'lucide-react';
 import type { Database } from '../../types/database';
 
 type BookingRow = Database['public']['Tables']['bookings']['Row'];
@@ -9,6 +9,7 @@ type Booking = BookingRow & {
   hall_name: string;
   department_name: string;
   user_name: string;
+  institution_name?: string;
 };
 
 export function Approvals() {
@@ -132,6 +133,12 @@ export function Approvals() {
                       <User className="w-4 h-4 mr-2" />
                       <span>{booking.department_name}</span>
                     </div>
+                    {booking.institution_name && (
+                      <div className="flex items-center text-indigo-600">
+                        <School className="w-4 h-4 mr-2" />
+                        <span className="font-medium">{booking.institution_name}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -185,6 +192,12 @@ export function Approvals() {
                     <p className="text-sm text-gray-500">Department</p>
                     <p className="font-medium text-gray-900">{selectedBooking.department_name}</p>
                   </div>
+                  {selectedBooking.institution_name && (
+                    <div>
+                      <p className="text-sm text-gray-500">College</p>
+                      <p className="font-medium text-indigo-600">{selectedBooking.institution_name}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm text-gray-500">Date</p>
                     <p className="font-medium text-gray-900">
