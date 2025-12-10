@@ -119,17 +119,29 @@ app.get('/api/admin/fix-schema', async (req, res) => {
         });
 
         console.log('🔧 Manual schema fix triggered...');
-        await pool.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS start_time TIME, ADD COLUMN IF NOT EXISTS end_time TIME;');
+        let status = [];
+
+        try {
+            await pool.query('ALTER TABLE bookings ADD COLUMN start_time TIME');
+            status.push('start_time added');
+        } catch (e) {
+            if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) status.push('start_time exists');
+            else throw e;
+        }
+
+        try {
+            await pool.query('ALTER TABLE bookings ADD COLUMN end_time TIME');
+            status.push('end_time added');
+        } catch (e) {
+            if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) status.push('end_time exists');
+            else throw e;
+        }
+
         await pool.end();
 
-        res.json({ message: 'Schema fixed successfully: start_time and end_time columns checked/added.' });
+        res.json({ message: `Schema checked/fixed. Status: ${status.join(', ')}` });
     } catch (error) {
-        // Ignore duplicate column error
-        if (error.code === 'ER_DUP_FIELDNAME' || error.errno === 1060) {
-            res.json({ message: 'Schema was already correct (columns exist).' });
-        } else {
-            res.status(500).json({ error: error.message, details: 'Manually fixing schema failed' });
-        }
+        res.status(500).json({ error: error.message, details: 'Manually fixing schema failed' });
     }
 });
 

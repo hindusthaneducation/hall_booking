@@ -111,19 +111,32 @@ export async function initDB() {
         });
 
         try {
-            console.log('⏳ Checking for schema updates (start_time, end_time)...');
-            await migrationPool.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS start_time TIME, ADD COLUMN IF NOT EXISTS end_time TIME;');
-            // Note: IF NOT EXISTS syntax for ADD COLUMN requires MySQL 8.0.29+. 
-            // If older version, catch error "Duplicate column".
-            console.log('✅ Schema migration checked.');
-        } catch (migErr) {
-            // Ignore "Duplicate column name" error (Code 1060)
-            if (migErr.code === 'ER_DUP_FIELDNAME' || migErr.errno === 1060) {
-                console.log('✅ Schema columns already exist.');
-            } else {
-                console.warn('⚠️ Schema migration warning:', migErr.message);
-                // Don't throw, proceed.
+            console.log('⏳ Checking for schema updates (start_time)...');
+            try {
+                await migrationPool.query('ALTER TABLE bookings ADD COLUMN start_time TIME');
+                console.log('✅ start_time column added.');
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                    console.log('✅ start_time already exists.');
+                } else {
+                    throw e;
+                }
             }
+
+            console.log('⏳ Checking for schema updates (end_time)...');
+            try {
+                await migrationPool.query('ALTER TABLE bookings ADD COLUMN end_time TIME');
+                console.log('✅ end_time column added.');
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                    console.log('✅ end_time already exists.');
+                } else {
+                    throw e;
+                }
+            }
+
+        } catch (migErr) {
+            console.warn('⚠️ Schema migration warning:', migErr.message);
         }
         await migrationPool.end();
 
