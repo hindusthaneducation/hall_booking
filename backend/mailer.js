@@ -97,7 +97,6 @@ export const getBookingTemplate = (status, data) => {
                     <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${event_time}</li>
                     <li style="margin-bottom: 8px;">🏛️ <strong>Hall:</strong> ${hall_name}</li>
                     <li style="margin-bottom: 8px;">📝 <strong>Event:</strong> ${event_title}</li>
-                    <li style="margin-bottom: 8px;">📝 <strong>Event:</strong> ${event_title}</li>
                     ${displayReason ? `<li style="margin-top: 12px; color: #dc2626;">⚠️ <strong>Reason:</strong> ${displayReason}</li>` : ''}
                 </ul>
             </div>
