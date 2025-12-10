@@ -31,10 +31,22 @@ export function Layout({ children }: LayoutProps) {
     navigate('/login');
   };
 
-  // Dynamic Title
+  // Dynamic Title & Favicon
   useEffect(() => {
-    if (profile?.institution?.name) {
+    if (profile?.institution) {
       document.title = `${profile.institution.name} - Hall Booking`;
+
+      // Update Favicon
+      if (profile.institution.logo_url) {
+        const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement('link');
+        link.type = 'image/png';
+        link.rel = 'icon';
+        // Handle relative vs absolute URL
+        link.href = profile.institution.logo_url.startsWith('http')
+          ? profile.institution.logo_url
+          : `${import.meta.env.VITE_API_BASE_URL}${profile.institution.logo_url}`;
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
     } else {
       document.title = 'Hall Booking System';
     }
