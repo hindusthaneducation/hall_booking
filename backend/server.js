@@ -28,6 +28,10 @@ app.use(cors({
 }));
 app.use(express.json());
 
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date() });
+});
+
 // Request Logger
 app.use((req, res, next) => {
     console.log(`📝 ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);

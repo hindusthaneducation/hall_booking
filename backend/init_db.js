@@ -97,6 +97,36 @@ export async function initDB() {
         }
 
         await pool.end();
+
+        // Separate migration step for existing tables
+        const migrationPool = mysql.createPool({
+            host: process.env.DB_HOST || 'localhost',
+            user: process.env.DB_USER || 'root',
+            password: process.env.DB_PASSWORD || '',
+            database: dbName,
+            port: process.env.DB_PORT || 3306,
+            ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
+                ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
+                : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+        });
+
+        try {
+            console.log('⏳ Checking for schema updates (start_time, end_time)...');
+            await migrationPool.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS start_time TIME, ADD COLUMN IF NOT EXISTS end_time TIME;');
+            // Note: IF NOT EXISTS syntax for ADD COLUMN requires MySQL 8.0.29+. 
+            // If older version, catch error "Duplicate column".
+            console.log('✅ Schema migration checked.');
+        } catch (migErr) {
+            // Ignore "Duplicate column name" error (Code 1060)
+            if (migErr.code === 'ER_DUP_FIELDNAME' || migErr.errno === 1060) {
+                console.log('✅ Schema columns already exist.');
+            } else {
+                console.warn('⚠️ Schema migration warning:', migErr.message);
+                // Don't throw, proceed.
+            }
+        }
+        await migrationPool.end();
+
         console.log('🎉 Database Initialization Complete.');
     } catch (error) {
         console.error('❌ Init Error:', error);
