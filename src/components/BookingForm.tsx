@@ -13,6 +13,14 @@ interface BookingFormProps {
   onSuccess: () => void;
 }
 
+interface OccupiedSlot {
+  id: string;
+  start_time: string;
+  end_time: string;
+  user_role: string;
+  user_name: string;
+}
+
 export function BookingForm({ hallId, hallName, date, departmentId, onClose, onSuccess }: BookingFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -23,6 +31,30 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
     startTime: '',
     endTime: '',
   });
+  const [occupiedSlots, setOccupiedSlots] = useState<OccupiedSlot[]>([]);
+
+  useEffect(() => {
+    if (hallId && date) {
+      const fetchOccupancy = async () => {
+        try {
+          const dateStr = formatDateLocal(date);
+          const { data } = await api.get<OccupiedSlot[]>(`/bookings?hall_id=${hallId}&date=${dateStr}&status=approved`);
+          // Note: status=approved or pending? User said "already one select". Usually checks approved + pending.
+          // Since my API returns all by default (filtered by role), I might need to ensure Department Users can SEE these bookings for availability.
+          // My backend logic specifically said: "Department User sees only their own... UNLESS checking availability".
+          // So this request should work.
+          if (data) {
+            // Filter out rejected
+            // And format/sort
+            setOccupiedSlots(data.filter((b: any) => b.status !== 'rejected').sort((a, b) => a.start_time.localeCompare(b.start_time)));
+          }
+        } catch (err) {
+          console.error("Failed to fetch slots", err);
+        }
+      };
+      fetchOccupancy();
+    }
+  }, [hallId, date]);
   // const [file, setFile] = useState<File | null>(null); // Feature removed
 
   const handleSubmit = async (e: FormEvent) => {
@@ -156,6 +188,23 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
                 />
               </div>
             </div>
+
+            {occupiedSlots.length > 0 && (
+              <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-md">
+                <h4 className="text-sm font-medium text-orange-800 mb-2">Occupied Slots:</h4>
+                <ul className="space-y-1">
+                  {occupiedSlots.map(slot => (
+                    <li key={slot.id} className="text-sm text-orange-700 flex items-center">
+                      <Clock className="w-3 h-3 mr-2" />
+                      <span className="font-medium mr-2">{slot.start_time} - {slot.end_time}</span>
+                      <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full capitalize">
+                        Booked by {slot.user_role ? slot.user_role.replace('_', ' ') : 'User'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* File Upload Removed as per request */}
           </div>

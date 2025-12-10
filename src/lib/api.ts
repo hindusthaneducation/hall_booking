@@ -7,12 +7,13 @@ interface RequestOptions extends RequestInit {
 }
 
 class ApiClient {
-    private getHeaders(token?: string): HeadersInit {
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-        };
+    private getHeaders(token?: string, isFormData?: boolean): HeadersInit {
+        const headers: HeadersInit = {};
 
-        // Prefer passed token, fallback to localStorage
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+
         const authToken = token || localStorage.getItem('token');
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
@@ -23,12 +24,15 @@ class ApiClient {
 
     async request<T>(endpoint: string, options: RequestOptions = {}): Promise<{ data: T | null; error: Error | null }> {
         try {
+            const isFormData = options.body instanceof FormData;
+            const headers = {
+                ...this.getHeaders(options.token, isFormData),
+                ...options.headers,
+            };
+
             const response = await fetch(`${API_URL}${endpoint}`, {
                 ...options,
-                headers: {
-                    ...this.getHeaders(options.token),
-                    ...options.headers,
-                },
+                headers,
             });
 
             const data = await response.json();
@@ -48,16 +52,18 @@ class ApiClient {
     }
 
     async post<T>(endpoint: string, body: any) {
+        const isFormData = body instanceof FormData;
         return this.request<T>(endpoint, {
             method: 'POST',
-            body: JSON.stringify(body),
+            body: isFormData ? body : JSON.stringify(body),
         });
     }
 
     async put<T>(endpoint: string, body: any) {
+        const isFormData = body instanceof FormData;
         return this.request<T>(endpoint, {
             method: 'PUT',
-            body: JSON.stringify(body),
+            body: isFormData ? body : JSON.stringify(body),
         });
     }
 

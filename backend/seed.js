@@ -86,13 +86,13 @@ export async function seed() {
             }
         }
 
-        const password = 'demo123';
+        const password = 'hicas';
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // 3. Seed Users (Linked to Demo Institution)
         const usersToCreate = [
             {
-                email: 'admin@college.edu',
+                email: 'admin@hindusthan.net',
                 full_name: 'System Administrator',
                 role: 'super_admin',
                 dept_short: 'ADMIN',
@@ -103,21 +103,21 @@ export async function seed() {
                 institution_id: demoInstId
             },
             {
-                email: 'principal@college.edu',
+                email: 'principal@hicas.ac.in',
                 full_name: 'Dr. Principal',
                 role: 'principal',
                 dept_short: 'ADMIN',
                 institution_id: demoInstId
             },
             {
-                email: 'it.user@college.edu',
+                email: 'it@hicas.ac.in',
                 full_name: 'IT Department User',
                 role: 'department_user',
                 dept_short: 'IT',
                 institution_id: demoInstId
             },
             {
-                email: 'cse.user@college.edu',
+                email: 'cse@hicas.ac.in',
                 full_name: 'CSE Department User',
                 role: 'department_user',
                 dept_short: 'CSE',

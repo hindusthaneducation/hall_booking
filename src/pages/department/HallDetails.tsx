@@ -195,7 +195,14 @@ export function HallDetails() {
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-8">
         <div className="aspect-video bg-gray-200 overflow-hidden">
-          <img src={hall.image_url} alt={hall.name} className="w-full h-full object-cover" />
+          <img
+            src={hall.image_url?.startsWith('http') ? hall.image_url : `${import.meta.env.VITE_API_BASE_URL}${hall.image_url}`}
+            alt={hall.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&q=80&w=800';
+            }}
+          />
         </div>
         <div className="p-6">
           <h1 className="text-3xl font-semibold text-gray-900 mb-4">{hall.name}</h1>

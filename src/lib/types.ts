@@ -2,6 +2,7 @@ export interface Institution {
     id: string;
     name: string;
     short_name?: string;
+    logo_url?: string;
     created_at: string;
 }
 

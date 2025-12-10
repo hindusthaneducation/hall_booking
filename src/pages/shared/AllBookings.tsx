@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { Building2, Calendar, Clock, Filter } from 'lucide-react';
+import { Building2, Calendar, Clock, Filter, Download } from 'lucide-react';
 import type { Database } from '../../types/database';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -65,6 +65,32 @@ export function AllBookings() {
     }
   };
 
+  const downloadCSV = () => {
+    const headers = ['Event Title', 'Hall', 'Department', 'Institution', 'Date', 'Time', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredBookings.map(b => [
+        `"${b.event_title.replace(/"/g, '""')}"`,
+        `"${b.hall_name.replace(/"/g, '""')}"`,
+        `"${b.department_name.replace(/"/g, '""')}"`,
+        `"${(b.institution_short_name || '').replace(/"/g, '""')}"`,
+        `"${new Date(b.booking_date).toLocaleDateString()}"`,
+        `"${b.event_time.replace(/"/g, '""')}"`,
+        `"${b.status}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'bookings_export.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -110,6 +136,17 @@ export function AllBookings() {
             </select>
           </div>
         )}
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={downloadCSV}
+          disabled={filteredBookings.length === 0}
+          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </button>
       </div>
 
       {filteredBookings.length === 0 ? (

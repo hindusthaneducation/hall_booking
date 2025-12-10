@@ -3,7 +3,17 @@ import { api } from '../lib/api';
 import type { Database } from '../types/database';
 
 // Using the same Profile type definition for compatibility
-type Profile = Database['public']['Tables']['profiles']['Row'];
+// Using the same Profile type definition for compatibility, extended with API fields
+type Profile = Database['public']['Tables']['profiles']['Row'] & {
+  institution?: {
+    name: string;
+    short_name: string;
+  };
+  department?: {
+    name: string;
+    short_name: string;
+  };
+};
 
 interface AuthContextType {
   user: { id: string; email?: string } | null; // Simplified User object

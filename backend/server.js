@@ -19,8 +19,11 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const allowedOrigins = [frontendUrl, frontendUrl.replace(/\/$/, '')];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(express.json());
@@ -36,7 +39,7 @@ const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
-app.use('/uploads', express.static(uploadDir));
+app.use('/api/uploads', express.static(uploadDir));
 
 // Multer Config
 const storage = multer.diskStorage({
@@ -99,10 +102,8 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
-    // Return full URL
-    // Use req.protocol + '://' + req.get('host') for reliable URL generation
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    res.json({ url: `${baseUrl}/uploads/${req.file.filename}` });
+    // Return relative path. Frontend should prepend API_BASE_URL.
+    res.json({ url: `/uploads/${req.file.filename}` });
 });
 
 // --- Auth Routes ---
@@ -131,7 +132,13 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     try {
-        const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+        const [users] = await pool.query(`
+            SELECT u.*, i.name as institution_name, i.short_name as institution_short_name, i.logo_url as institution_logo_url, d.name as department_name, d.short_name as department_short_name
+            FROM users u
+            LEFT JOIN institutions i ON u.institution_id = i.id
+            LEFT JOIN departments d ON u.department_id = d.id
+            WHERE u.email = ?
+        `, [email]);
         if (users.length === 0) return res.status(400).json({ error: 'User not found' });
 
         const user = users[0];
@@ -151,7 +158,16 @@ app.post('/api/auth/login', async (req, res) => {
                     full_name: user.full_name,
                     role: user.role,
                     department_id: user.department_id,
-                    institution_id: user.institution_id
+                    institution_id: user.institution_id,
+                    institution: {
+                        name: user.institution_name,
+                        short_name: user.institution_short_name,
+                        logo_url: user.institution_logo_url
+                    },
+                    department: {
+                        name: user.department_name,
+                        short_name: user.department_short_name
+                    }
                 }
             });
         } else {
@@ -168,7 +184,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
         const [users] = await pool.query(`
             SELECT u.id, u.email, u.full_name, u.role, u.department_id, u.institution_id, 
                    d.name as department_name, d.short_name as department_short_name,
-                   i.name as institution_name, i.short_name as institution_short_name
+                   i.name as institution_name, i.short_name as institution_short_name, i.logo_url as institution_logo_url
             FROM users u
             LEFT JOIN departments d ON u.department_id = d.id
             LEFT JOIN institutions i ON u.institution_id = i.id
@@ -194,7 +210,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
             institution: user.institution_id ? {
                 id: user.institution_id,
                 name: user.institution_name,
-                short_name: user.institution_short_name
+                short_name: user.institution_short_name,
+                logo_url: user.institution_logo_url
             } : null
         };
 
@@ -373,7 +390,7 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
                    b.event_title, b.event_description, b.event_time, b.status, b.rejection_reason,
                    b.start_time, b.end_time, 
                    b.approved_by, b.approved_at, b.created_at, b.updated_at,
-                   h.name as hall_name, d.short_name as department_name, u.full_name as user_name,
+                   h.name as hall_name, d.short_name as department_name, u.full_name as user_name, u.role as user_role,
                    i.short_name as institution_short_name, i.name as institution_name, d.institution_id
             FROM bookings b 
             JOIN halls h ON b.hall_id = h.id 
@@ -382,11 +399,35 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
             LEFT JOIN institutions i ON d.institution_id = i.id
         `;
         const params = [];
-        const showAll = req.query.view === 'all' || ['super_admin', 'principal'].includes(req.user.role);
 
-        if (!showAll && req.user.role === 'department_user') {
-            query += ' WHERE b.user_id = ?';
-            params.push(req.user.id);
+        // Role-based filtering
+        if (req.user.role === 'super_admin') {
+            // Super Admin sees all
+        } else if (req.user.role === 'principal') {
+            // Principal sees all bookings for their institution
+            query += ' WHERE d.institution_id = ?';
+            params.push(req.user.institution_id);
+        } else {
+            // Department User sees only their own bookings... 
+            // UNLESS they are checking availability (hall_id + date provided)
+            if (req.query.hall_id && req.query.date) {
+                // Allow checking availability for a specific hall/date
+                // We will append matching logic below
+            } else {
+                query += ' WHERE b.user_id = ?';
+                params.push(req.user.id);
+            }
+        }
+
+        // Additional Filters (Availability Check)
+        if (req.query.hall_id) {
+            // Use AND or WHERE depending on if WHERE clause started
+            query += params.length > 0 ? ' AND b.hall_id = ?' : ' WHERE b.hall_id = ?';
+            params.push(req.query.hall_id);
+        }
+        if (req.query.date) {
+            query += params.length > 0 ? ' AND b.booking_date = ?' : ' WHERE b.booking_date = ?';
+            params.push(req.query.date);
         }
 
         query += ' ORDER BY b.booking_date DESC';
@@ -476,11 +517,16 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
 
         const html = getBookingTemplate(initialStatus, emailData);
 
-        // Fetch fresh email from DB to ensure we have it
+        // Fetch fresh email and name from DB to ensure we have it
         try {
-            const [uRows] = await pool.query('SELECT email FROM users WHERE id = ?', [req.user.id]);
+            const [uRows] = await pool.query('SELECT email, full_name FROM users WHERE id = ?', [req.user.id]);
             if (uRows.length > 0 && uRows[0].email) {
-                sendEmail(uRows[0].email, `Booking Receipt: ${event_title} `, html).catch(err => console.error('Email send failed:', err));
+                // Update email data with fetched name
+                emailData.user_name = uRows[0].full_name;
+                // Re-render template with correct name
+                const finalHtml = getBookingTemplate(initialStatus, emailData);
+
+                sendEmail(uRows[0].email, `Booking Receipt: ${event_title}`, finalHtml).catch(err => console.error('Email send failed:', err));
             } else {
                 console.warn('⚠️ No email found for user in DB, skipping notification.');
             }
@@ -534,6 +580,126 @@ app.patch('/api/bookings/:id/status', authenticateToken, async (req, res) => {
         }
     } else {
         res.sendStatus(403);
+    }
+});
+
+// --- Dashboard Stats ---
+
+app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
+    try {
+        const { role, institution_id } = req.user;
+        const stats = {
+            colleges: 0,
+            halls: 0,
+            hods: 0,
+            principals: 0
+        };
+
+        // 1. Colleges Count
+        if (role === 'super_admin') {
+            const [cRows] = await pool.query('SELECT COUNT(*) as count FROM institutions');
+            stats.colleges = cRows[0].count;
+        } else {
+            // Determines if their institution exists/is valid
+            stats.colleges = institution_id ? 1 : 0;
+        }
+
+        // 2. Halls Count
+        let hallsQuery = 'SELECT COUNT(*) as count FROM halls WHERE is_active = true';
+        const hallsParams = [];
+        if (role !== 'super_admin' && institution_id) {
+            hallsQuery += ' AND institution_id = ?';
+            hallsParams.push(institution_id);
+        }
+        const [hRows] = await pool.query(hallsQuery, hallsParams);
+        stats.halls = hRows[0].count;
+
+        // 3. Staff Counts
+        let usersQuery = 'SELECT role, COUNT(*) as count FROM users';
+        let usersParams = [];
+
+        if (role !== 'super_admin' && institution_id) {
+            usersQuery += ' WHERE institution_id = ?';
+            usersParams.push(institution_id);
+        }
+        usersQuery += ' GROUP BY role';
+
+        const [uRows] = await pool.query(usersQuery, usersParams);
+        uRows.forEach(row => {
+            if (row.role === 'department_user') stats.hods = row.count;
+            if (row.role === 'principal') stats.principals = row.count;
+        });
+
+        // 4. Recent Bookings (Top 5)
+        // Re-using the secure querying logic similar to /api/bookings
+        let bookingsQuery = `
+            SELECT b.id, b.event_title, b.booking_date, b.status, h.name as hall_name, i.name as institution_name
+            FROM bookings b
+            JOIN halls h ON b.hall_id = h.id
+            JOIN institutions i ON h.institution_id = i.id
+        `;
+        const bookingsParams = [];
+
+        if (role !== 'super_admin') {
+            // Show bookings for their institution
+            if (institution_id) {
+                bookingsQuery += ' WHERE h.institution_id = ?';
+                bookingsParams.push(institution_id);
+            } else {
+                // Fallback for user without institution (shouldn't happen for these roles but safe)
+                bookingsQuery += ' WHERE 1=0';
+            }
+        }
+        bookingsQuery += ' ORDER BY b.booking_date DESC LIMIT 5';
+        const [recentBookings] = await pool.query(bookingsQuery, bookingsParams);
+
+        res.json({ stats, recentBookings });
+    } catch (error) {
+        console.error('General Stats error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/dashboard/stats/institutions', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+
+    try {
+        const query = `
+            SELECT 
+                i.id, i.name, i.short_name,
+                COUNT(DISTINCT h.id) as total_halls,
+                COUNT(DISTINCT CASE WHEN b.status = 'pending' THEN b.id END) as pending_bookings,
+                COUNT(DISTINCT CASE WHEN b.status = 'approved' AND b.booking_date >= CURDATE() THEN b.id END) as active_bookings
+            FROM institutions i
+            LEFT JOIN halls h ON i.id = h.institution_id AND h.is_active = true
+            LEFT JOIN departments d ON i.id = d.institution_id
+            LEFT JOIN bookings b ON (b.hall_id = h.id OR b.department_id = d.id) 
+            GROUP BY i.id
+            ORDER BY i.name
+        `;
+        // Note: Joining bookings via Hall OR Department to catch all relevant activity. 
+        // Simpler approach: Join bookings via Hall, as bookings are primarily on Halls.
+        // Let's refine the query to be Hall-centric for bookings count.
+
+        const refinedQuery = `
+            SELECT 
+                i.id, i.name, i.short_name,
+                (SELECT COUNT(*) FROM halls h WHERE h.institution_id = i.id AND h.is_active = true) as total_halls,
+                (SELECT COUNT(*) FROM bookings b 
+                 JOIN halls h ON b.hall_id = h.id 
+                 WHERE h.institution_id = i.id AND b.status = 'pending') as pending_bookings,
+                (SELECT COUNT(*) FROM bookings b 
+                 JOIN halls h ON b.hall_id = h.id 
+                 WHERE h.institution_id = i.id AND b.status = 'approved' AND b.booking_date >= CURDATE()) as active_bookings
+            FROM institutions i
+            ORDER BY i.name
+        `;
+
+        const [rows] = await pool.query(refinedQuery);
+        res.json(rows);
+    } catch (error) {
+        console.error('Stats error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -681,23 +847,39 @@ app.delete('/api/departments/:id', authenticateToken, async (req, res) => {
     }
 });
 
-app.get('/api/institutions', async (req, res) => {
+app.get('/api/institutions', authenticateToken, async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM institutions ORDER BY name');
+        let query = 'SELECT * FROM institutions';
+        const params = [];
+
+        // Security: Restrict visibility for non-super-admins
+        if (req.user.role !== 'super_admin') {
+            query += ' WHERE id = ?';
+            // Ensure institution_id is present to avoid showing nothing or error
+            if (!req.user.institution_id) {
+                return res.json([]); // Or return 403, but empty list is safer for UI
+            }
+            params.push(req.user.institution_id);
+        }
+
+        query += ' ORDER BY name';
+        const [rows] = await pool.query(query, params);
         res.json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-app.post('/api/institutions', authenticateToken, async (req, res) => {
+app.post('/api/institutions', authenticateToken, upload.single('logo'), async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
     const { name, short_name } = req.body;
     const id = uuidv4();
+    const logo_url = req.file ? `/uploads/${req.file.filename}` : null;
+
     try {
         await pool.query(
-            'INSERT INTO institutions (id, name, short_name) VALUES (?, ?, ?)',
-            [id, name, short_name || null]
+            'INSERT INTO institutions (id, name, short_name, logo_url) VALUES (?, ?, ?, ?)',
+            [id, name, short_name || null, logo_url]
         );
         res.status(201).json({ message: 'Institution created' });
     } catch (error) {
@@ -705,14 +887,24 @@ app.post('/api/institutions', authenticateToken, async (req, res) => {
     }
 });
 
-app.put('/api/institutions/:id', authenticateToken, async (req, res) => {
+app.put('/api/institutions/:id', authenticateToken, upload.single('logo'), async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
     const { name, short_name } = req.body;
+    const logo_url = req.file ? `/uploads/${req.file.filename}` : undefined;
+
     try {
-        await pool.query(
-            'UPDATE institutions SET name=?, short_name=? WHERE id=?',
-            [name, short_name || null, req.params.id]
-        );
+        let query = 'UPDATE institutions SET name=?, short_name=?';
+        const params = [name, short_name || null];
+
+        if (logo_url) {
+            query += ', logo_url=?';
+            params.push(logo_url);
+        }
+
+        query += ' WHERE id=?';
+        params.push(req.params.id);
+
+        await pool.query(query, params);
         res.json({ message: 'Institution updated' });
     } catch (error) {
         res.status(500).json({ error: error.message });

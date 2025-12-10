@@ -14,7 +14,7 @@ import {
   School,
   Layers,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -30,6 +30,15 @@ export function Layout({ children }: LayoutProps) {
     await signOut();
     navigate('/login');
   };
+
+  // Dynamic Title
+  useEffect(() => {
+    if (profile?.institution?.name) {
+      document.title = `${profile.institution.name} - Hall Booking`;
+    } else {
+      document.title = 'Hall Booking System';
+    }
+  }, [profile]);
 
   const navItems = {
     department_user: [
@@ -65,8 +74,14 @@ export function Layout({ children }: LayoutProps) {
       <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-20">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center">
-            <Building2 className="w-6 h-6 text-blue-600 mr-2" />
-            <span className="font-semibold text-gray-900">Hall Booking</span>
+            {profile?.institution?.logo_url ? (
+              <img src={`${import.meta.env.VITE_API_BASE_URL}${profile.institution.logo_url}`} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+            ) : (
+              <Building2 className="w-6 h-6 text-blue-600 mr-2" />
+            )}
+            <span className="font-semibold text-gray-900">
+              {profile?.role === 'super_admin' ? 'Hindusthan Admin' : (profile?.institution?.short_name || 'Hall Booking')}
+            </span>
           </div>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -78,22 +93,32 @@ export function Layout({ children }: LayoutProps) {
       </div>
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-gray-200 z-30 transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-gray-200 z-30 transition-transform duration-300 flex flex-col ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           } lg:translate-x-0`}
       >
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 shrink-0">
           <div className="flex items-center">
-            <Building2 className="w-8 h-8 text-blue-600 mr-3" />
+            {profile?.institution?.logo_url ? (
+              <img src={`${import.meta.env.VITE_API_BASE_URL}${profile.institution.logo_url}`} alt="Logo" className="w-10 h-10 object-contain mr-3" />
+            ) : (
+              <Building2 className="w-8 h-8 text-blue-600 mr-3" />
+            )}
             <div>
               <h1 className="text-lg font-semibold text-gray-900 leading-tight">
-                {profile?.institution?.name || profile?.institution?.short_name || 'Hall Booking'}
+                {profile?.role === 'super_admin'
+                  ? 'Hindusthan Educational Institutions'
+                  : (profile?.institution?.name || profile?.institution?.short_name || 'Hall Booking')}
               </h1>
-              <p className="text-xs text-gray-500 capitalize">{profile?.role.replace('_', ' ')}</p>
+              <p className="text-xs text-gray-500 capitalize">
+                {profile?.role === 'department_user'
+                  ? (profile?.department?.name || 'Department Staff')
+                  : profile?.role.replace('_', ' ')}
+              </p>
             </div>
           </div>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 flex-1 overflow-y-auto min-h-0">
           {currentNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -114,7 +139,7 @@ export function Layout({ children }: LayoutProps) {
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 shrink-0">
           <div className="mb-3 px-4">
             <p className="text-sm font-medium text-gray-900">{profile?.full_name}</p>
             <p className="text-xs text-gray-500">{profile?.email}</p>

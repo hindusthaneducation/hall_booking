@@ -4,7 +4,8 @@
 CREATE TABLE IF NOT EXISTS institutions (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    short_name VARCHAR(50), -- Optional
+    short_name VARCHAR(50),
+    logo_url VARCHAR(255), -- Link to logo image
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
