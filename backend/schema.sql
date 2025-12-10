@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS bookings (
     event_title VARCHAR(255) NOT NULL,
     event_description TEXT,
     event_time VARCHAR(100), -- Format like "10:00 - 12:00"
+    start_time TIME,
+    end_time TIME,
     approval_letter_url VARCHAR(255),
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     rejection_reason TEXT,
