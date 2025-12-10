@@ -2,12 +2,24 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Sanitize credentials (remove surrounding quotes if user pasted them)
+const sanitize = (str) => str ? str.replace(/^["'](.*)["']$/, '$1') : str;
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-    }
+        user: sanitize(process.env.MAIL_USER),
+        pass: sanitize(process.env.MAIL_PASS)
+    },
+    tls: {
+        rejectUnauthorized: false // Help with some restrictive network configs
+    },
+    // Debug settings to see SMTP traffic in logs
+    logger: true,
+    debug: true,
+    connectionTimeout: 10000, // 10 seconds timeout
+    greetingTimeout: 10000,
+    socketTimeout: 10000
 });
 
 export const sendEmail = async (to, subject, html) => {
