@@ -11,7 +11,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { initDB } from './init_db.js';
 import { seed } from './seed.js';
-import { sendEmail, getBookingTemplate } from './mailer.js';
+import { sendEmail, getBookingTemplate, verifyConnection } from './mailer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +76,9 @@ pool.getConnection()
         console.log('✅ Database connected successfully');
         console.log(`📊 Connected to database: ${process.env.DB_NAME}`);
         connection.release();
+
+        // Verify Email Connection asynchronously
+        verifyConnection();
     })
     .catch(err => {
         console.error('❌ Database connection failed:', err.message);

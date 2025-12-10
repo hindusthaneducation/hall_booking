@@ -24,6 +24,19 @@ export const sendEmail = async (to, subject, html) => {
         console.error('❌ Email failed:', error);
         return false;
     }
+}
+
+export const verifyConnection = async () => {
+    try {
+        console.log(`📧 Attempting to connect to Gmail as: ${process.env.MAIL_USER || '(Not Set)'}`);
+        await transporter.verify();
+        console.log('✅ Email Service is Ready & Connected.');
+        return true;
+    } catch (error) {
+        console.error('❌ Email Connection Failed:', error.message);
+        if (error.code === 'EAUTH') console.error('   -> Hint: Check MAIL_USER and MAIL_PASS in Render Environment.');
+        return false;
+    }
 };
 
 export const getBookingTemplate = (status, data) => {
