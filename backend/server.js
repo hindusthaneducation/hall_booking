@@ -106,6 +106,33 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
     res.json({ url: `/uploads/${req.file.filename}` });
 });
 
+// Emergency DB Fix Endpoint
+app.get('/api/admin/fix-schema', async (req, res) => {
+    try {
+        const pool = mysql.createPool({
+            host: process.env.DB_HOST || 'localhost',
+            user: process.env.DB_USER || 'root',
+            password: process.env.DB_PASSWORD || '',
+            database: process.env.DB_NAME || 'hall_booking_system',
+            port: process.env.DB_PORT || 3306,
+            ssl: process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined
+        });
+
+        console.log('🔧 Manual schema fix triggered...');
+        await pool.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS start_time TIME, ADD COLUMN IF NOT EXISTS end_time TIME;');
+        await pool.end();
+
+        res.json({ message: 'Schema fixed successfully: start_time and end_time columns checked/added.' });
+    } catch (error) {
+        // Ignore duplicate column error
+        if (error.code === 'ER_DUP_FIELDNAME' || error.errno === 1060) {
+            res.json({ message: 'Schema was already correct (columns exist).' });
+        } else {
+            res.status(500).json({ error: error.message, details: 'Manually fixing schema failed' });
+        }
+    }
+});
+
 // --- Auth Routes ---
 
 app.post('/api/auth/register', async (req, res) => {
