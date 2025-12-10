@@ -6,18 +6,17 @@ dotenv.config();
 const sanitize = (str) => str ? str.replace(/^["'](.*)["']$/, '$1') : str;
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // use SSL
     auth: {
         user: sanitize(process.env.MAIL_USER),
         pass: sanitize(process.env.MAIL_PASS)
     },
-    tls: {
-        rejectUnauthorized: false // Help with some restrictive network configs
-    },
     // Debug settings to see SMTP traffic in logs
     logger: true,
     debug: true,
-    connectionTimeout: 10000, // 10 seconds timeout
+    connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 10000
 });
