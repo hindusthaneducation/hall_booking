@@ -15,6 +15,7 @@ import {
   Layers,
 } from 'lucide-react';
 import HindusthanLogo from '../images/hindusthan_logo.webp';
+import { ImageWithFallback } from './ImageWithFallback';
 import { useState, useEffect } from 'react';
 
 interface LayoutProps {
@@ -88,11 +89,9 @@ export function Layout({ children }: LayoutProps) {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center">
             {profile?.role === 'super_admin' ? (
-              <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
-            ) : profile?.institution?.logo_url ? (
-              <img src={`${import.meta.env.VITE_API_BASE_URL}${profile.institution.logo_url}`} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+              <ImageWithFallback src={null} fallbackSrc={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
             ) : (
-              <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+              <ImageWithFallback src={profile?.institution?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
             )}
             <span className="font-semibold text-gray-900">
               {profile?.role === 'super_admin' ? 'Hindusthan Admin' : (profile?.institution?.short_name || 'Hall Booking')}
@@ -113,10 +112,10 @@ export function Layout({ children }: LayoutProps) {
       >
         <div className="p-6 border-b border-gray-200 shrink-0">
           <div className="flex items-center">
-            {profile?.institution?.logo_url ? (
-              <img src={`${import.meta.env.VITE_API_BASE_URL}${profile.institution.logo_url}`} alt="Logo" className="w-10 h-10 object-contain mr-3" />
+            {profile?.role === 'super_admin' ? (
+              <ImageWithFallback src={null} fallbackSrc={HindusthanLogo} alt="Logo" className="w-10 h-10 object-contain mr-3" />
             ) : (
-              <Building2 className="w-8 h-8 text-blue-600 mr-3" />
+              <ImageWithFallback src={profile?.institution?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-10 h-10 object-contain mr-3" />
             )}
             <div>
               <h1 className="text-lg font-semibold text-gray-900 leading-tight">

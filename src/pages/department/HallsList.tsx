@@ -236,11 +236,11 @@ export function HallsList() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="h-16 w-16 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors flex items-center justify-center overflow-hidden">
-                  {inst.logo_url ? (
-                    <img src={`${import.meta.env.VITE_API_BASE_URL}${inst.logo_url}`} alt={inst.name} className="h-12 w-12 object-contain" />
-                  ) : (
-                    <img src={HindusthanLogo} alt="Logo" className="h-12 w-12 object-contain" />
-                  )}
+                  <ImageWithFallback
+                    src={inst.logo_url}
+                    alt={inst.name}
+                    className="h-12 w-12 object-contain"
+                  />
                 </div>
                 <div className="bg-gray-100 px-3 py-1 rounded-full text-xs font-medium text-gray-600">
                   {hallCount} Halls

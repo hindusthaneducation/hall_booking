@@ -106,13 +106,13 @@ export function AllBookings() {
         <p className="text-gray-600">Complete booking history across all halls</p>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="flex items-center space-x-2">
-          <Filter className="w-5 h-5 text-gray-600" />
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
+          <Filter className="w-5 h-5 text-gray-600 flex-shrink-0" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -122,12 +122,12 @@ export function AllBookings() {
         </div>
 
         {profile?.role === 'super_admin' && (
-          <div className="flex items-center space-x-2">
-            <Building2 className="w-5 h-5 text-gray-600" />
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
+            <Building2 className="w-5 h-5 text-gray-600 flex-shrink-0" />
             <select
               value={institutionFilter}
               onChange={(e) => setInstitutionFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Institutions</option>
               {institutions.map(inst => (
@@ -155,7 +155,7 @@ export function AllBookings() {
           <p className="text-gray-600">No bookings found</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
