@@ -4,6 +4,7 @@ import { Users, Plus, Edit, X, Trash2, ArrowLeft, Search, GraduationCap } from '
 import type { Database } from '../../types/database';
 import type { Institution } from '../../lib/types';
 import HindusthanLogo from '../../images/hindusthan_logo.webp';
+import { ImageWithFallback } from '../../components/ImageWithFallback';
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   department?: Database['public']['Tables']['departments']['Row'];
@@ -386,11 +387,11 @@ function renderForm(showForm: boolean, editingUser: any, formData: any, setFormD
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 flex justify-between">
-          <h2 className="text-2xl font-semibold text-gray-900">{editingUser ? 'Edit User' : 'Add New User'}</h2>
+        <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">{editingUser ? 'Edit User' : 'Add New User'}</h2>
           <button onClick={resetForm}><X className="w-5 h-5 text-gray-600" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
             <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} required className="w-full px-3 py-2 border rounded-md" />

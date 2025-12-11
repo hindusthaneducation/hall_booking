@@ -6,6 +6,7 @@ import { Search, Building2, Users, School, MapPin, ArrowRight, ArrowLeft } from 
 import type { Database } from '../../types/database';
 import type { Institution } from '../../lib/types';
 import HindusthanLogo from '../../images/hindusthan_logo.webp';
+import { ImageWithFallback } from '../../components/ImageWithFallback';
 
 type Hall = Database['public']['Tables']['halls']['Row'];
 

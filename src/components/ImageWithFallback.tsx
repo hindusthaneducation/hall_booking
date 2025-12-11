@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import HindusthanLogo from '../images/hindusthan_logo.webp';
 
-interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface ImageWithFallbackProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
     src?: string | null;
     fallbackSrc?: string;
 }

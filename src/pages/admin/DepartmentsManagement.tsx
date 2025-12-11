@@ -3,6 +3,7 @@ import { api } from '../../lib/api';
 import { Plus, Edit, Trash2, X, Search, ArrowLeft, School, FolderTree, GraduationCap, Users } from 'lucide-react';
 import type { Department, Institution, User } from '../../lib/types';
 import HindusthanLogo from '../../images/hindusthan_logo.webp';
+import { ImageWithFallback } from '../../components/ImageWithFallback';
 
 type Profile = User; // Alias for convenience if needed, or just use User
 
