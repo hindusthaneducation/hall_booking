@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDateLocal } from '../../lib/utils';
-import { Building2, Users, Maximize, ArrowLeft, X } from 'lucide-react';
+import { Building2, Users, Maximize, ArrowLeft, X, Volume2 } from 'lucide-react';
 import { Calendar } from '../../components/Calendar';
 import { BookingForm } from '../../components/BookingForm';
 import { SuccessModal } from '../../components/SuccessModal';
@@ -209,29 +209,32 @@ export function HallDetails() {
           <p className="text-gray-600 mb-6">{hall.description}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center text-gray-700">
-              <Building2 className="w-5 h-5 mr-3 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-500">Type</p>
-                <p className="font-medium">{hall.hall_type}</p>
-              </div>
-            </div>
-            <div className="flex items-center text-gray-700">
-              <Users className="w-5 h-5 mr-3 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-500">Capacity</p>
-                <p className="font-medium">{hall.seating_capacity} seats</p>
-              </div>
-            </div>
-            {hall.stage_size && (
-              <div className="flex items-center text-gray-700">
-                <Maximize className="w-5 h-5 mr-3 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-500">Stage Size</p>
-                  <p className="font-medium">{hall.stage_size}</p>
+            <div className="bg-brand-card p-6 rounded-lg shadow-sm border border-gray-200">
+              <h2 className="text-lg font-semibold text-brand-text mb-4">Amenities</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center text-gray-700">
+                  <Building2 className="w-5 h-5 mr-3 text-brand-primary" />
+                  <span>{hall.is_ac ? 'AC Hall' : 'Non-AC Hall'}</span>
                 </div>
+                <div className="flex items-center text-gray-700">
+                  <Users className="w-5 h-5 mr-3 text-brand-primary" />
+                  <span>{hall.seating_capacity} Seating</span>
+                </div>
+                <div className="flex items-center text-gray-700">
+                  <Volume2 className="w-5 h-5 mr-3 text-brand-primary" />
+                  <span>{hall.has_sound_system ? 'Sound System' : 'No Sound System'}</span>
+                </div>
+                {hall.stage_size && (
+                  <div className="flex items-center text-gray-700">
+                    <Maximize className="w-5 h-5 mr-3 text-brand-primary" />
+                    <div>
+                      <p className="text-sm text-gray-500">Stage Size</p>
+                      <p className="font-medium">{hall.stage_size}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -327,7 +330,7 @@ export function HallDetails() {
                   setShowDayView(false);
                   setShowBookingForm(true);
                 }}
-                className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="w-full py-2 bg-brand-primary text-white rounded-md hover:bg-brand-secondary"
               >
                 Book New Slot
               </button>

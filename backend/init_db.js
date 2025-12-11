@@ -138,6 +138,42 @@ export async function initDB() {
         } catch (migErr) {
             console.warn('⚠️ Schema migration warning:', migErr.message);
         }
+
+
+        try {
+            console.log('⏳ Checking for settings table...');
+            // Create settings table (MySQL Syntax)
+            await migrationPool.query(`
+                CREATE TABLE IF NOT EXISTS settings (
+                    setting_key VARCHAR(255) PRIMARY KEY,
+                    setting_value JSON NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    updated_by CHAR(36),
+                    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+                )
+            `);
+            console.log('✅ settings table checked/created.');
+
+            // Insert default registration_active = true (Active) if not exists
+            // We use INSERT IGNORE or checking existence
+            const [sRows] = await migrationPool.query('SELECT * FROM settings WHERE setting_key = "registration_active"');
+            if (sRows.length === 0) {
+                await migrationPool.query('INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)', ['registration_active', JSON.stringify(true)]);
+                console.log('✅ Default registration_active setting inserted.');
+            }
+
+            console.log('⏳ Checking for theme_preference in users...');
+            await migrationPool.query("ALTER TABLE users ADD COLUMN theme_preference VARCHAR(50) DEFAULT 'hindusthan'");
+            console.log('✅ theme_preference column added.');
+        } catch (migErr2) {
+            // Ignore Duplicate Column errors (ER_DUP_FIELDNAME / 1060)
+            if (migErr2.code === 'ER_DUP_FIELDNAME' || migErr2.errno === 1060) {
+                console.log('✅ theme_preference already exists.');
+            } else {
+                console.warn('⚠️ Additional migration warning:', migErr2.message);
+            }
+        }
+
         await migrationPool.end();
 
         console.log('🎉 Database Initialization Complete.');

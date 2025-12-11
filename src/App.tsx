@@ -35,126 +35,130 @@ function DashboardRouter() {
   }
 }
 
+import { ThemeProvider } from './contexts/ThemeContext';
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <DashboardRouter />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/halls"
-            element={
-              <ProtectedRoute allowedRoles={['department_user', 'principal', 'super_admin']}>
-                <Layout>
-                  <HallsList />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/halls/:id"
-            element={
-              <ProtectedRoute allowedRoles={['department_user', 'principal', 'super_admin']}>
-                <Layout>
-                  <HallDetails />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/my-bookings"
-            element={
-              <ProtectedRoute allowedRoles={['department_user']}>
-                <Layout>
-                  <MyBookings />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/approvals"
-            element={
-              <ProtectedRoute allowedRoles={['principal', 'super_admin']}>
-                <Layout>
-                  <Approvals />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/all-bookings"
-            element={
-              <ProtectedRoute allowedRoles={['principal', 'super_admin']}>
-                <Layout>
-                  <AllBookings />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/halls-management"
-            element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
-                <Layout>
-                  <HallsManagement />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/users-management"
-            element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
-                <Layout>
-                  <UsersManagement />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/institutions-management"
-            element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
-                <Layout>
-                  <InstitutionsManagement />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/departments-management"
-            element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
-                <Layout>
-                  <DepartmentsManagement />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute allowedRoles={['department_user', 'principal', 'super_admin']}>
-                <Layout>
-                  <Settings />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+        <ThemeProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DashboardRouter />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/halls"
+              element={
+                <ProtectedRoute allowedRoles={['department_user', 'principal', 'super_admin']}>
+                  <Layout>
+                    <HallsList />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/halls/:id"
+              element={
+                <ProtectedRoute allowedRoles={['department_user', 'principal', 'super_admin']}>
+                  <Layout>
+                    <HallDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-bookings"
+              element={
+                <ProtectedRoute allowedRoles={['department_user']}>
+                  <Layout>
+                    <MyBookings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/approvals"
+              element={
+                <ProtectedRoute allowedRoles={['principal', 'super_admin']}>
+                  <Layout>
+                    <Approvals />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/all-bookings"
+              element={
+                <ProtectedRoute allowedRoles={['principal', 'super_admin']}>
+                  <Layout>
+                    <AllBookings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/halls-management"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin']}>
+                  <Layout>
+                    <HallsManagement />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users-management"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin']}>
+                  <Layout>
+                    <UsersManagement />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/institutions-management"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin']}>
+                  <Layout>
+                    <InstitutionsManagement />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/departments-management"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin']}>
+                  <Layout>
+                    <DepartmentsManagement />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute allowedRoles={['department_user', 'principal', 'super_admin']}>
+                  <Layout>
+                    <Settings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </ThemeProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </BrowserRouter >
   );
 }
 

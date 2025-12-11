@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { Users, Plus, Edit, X, Trash2, ArrowLeft, Search, GraduationCap } from 'lucide-react';
+import { Users, Plus, Edit, X, Trash2, ArrowLeft, Search, GraduationCap, Shield } from 'lucide-react';
 import type { Database } from '../../types/database';
 import type { Institution } from '../../lib/types';
 import HindusthanLogo from '../../images/hindusthan_logo.webp';
@@ -135,8 +135,12 @@ export function UsersManagement() {
     const isSystem = selectedInstId === 'system';
     const institution = !isSystem ? institutions.find(i => i.id === selectedInstId) : { name: 'Hindusthan Educational Institutions' };
 
-    // Filter by Institution/System
-    let filteredUsers = users.filter(u => isSystem ? !u.institution_id : u.institution_id === selectedInstId);
+    // Filter by Institution/System: super_admin always goes to System view
+    let filteredUsers = users.filter(u =>
+      isSystem
+        ? (!u.institution_id || u.role === 'super_admin')
+        : (u.institution_id === selectedInstId && u.role !== 'super_admin')
+    );
 
     // Get Counts
     const hodCount = filteredUsers.filter(u => u.role === 'department_user').length;
@@ -169,7 +173,7 @@ export function UsersManagement() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center mb-2">
                 <ImageWithFallback
-                  src={!isSystem ? institution?.logo_url : null}
+                  src={!isSystem ? (institution as Institution)?.logo_url : null}
                   alt={institution?.name || 'Logo'}
                   className="w-8 h-8 object-contain mr-2"
                 />
@@ -208,7 +212,7 @@ export function UsersManagement() {
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 shadow-sm"
+                className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary w-64 shadow-sm"
               />
               <div className="absolute left-3 top-2.5 text-gray-400">
                 <Search className="w-4 h-4" />
@@ -224,7 +228,7 @@ export function UsersManagement() {
                 }));
                 setShowForm(true);
               }}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+              className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-secondary transition-colors shadow-sm"
             >
               <Plus className="w-5 h-5 mr-2" />
               Add User
@@ -232,7 +236,7 @@ export function UsersManagement() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -247,8 +251,8 @@ export function UsersManagement() {
               {filteredUsers.map((user) => (
                 <tr key={user.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
-                    {user.role === 'principal' && <span className="text-xs text-blue-600 font-semibold">Principal</span>}
+                    <div className="text-sm font-medium text-brand-text">{user.full_name}</div>
+                    {user.role === 'principal' && <span className="text-xs text-brand-primary font-semibold">Principal</span>}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-600">{user.email}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -258,7 +262,7 @@ export function UsersManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.department?.short_name || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-900 mr-3"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => handleEdit(user)} className="text-brand-primary hover:text-brand-secondary mr-3"><Edit className="w-4 h-4" /></button>
                     <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
@@ -280,11 +284,11 @@ export function UsersManagement() {
   }
 
   // Grid View
-  const systemUsersCount = users.filter(u => !u.institution_id).length;
+  const systemUsersCount = users.filter(u => !u.institution_id || u.role === 'super_admin').length;
   // Filter Institutions by Search
   const filteredInstitutions = institutions.filter(inst =>
     inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inst.short_name.toLowerCase().includes(searchQuery.toLowerCase())
+    (inst.short_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
   // Also filter System Card logic: if search matches "hindusthan", "system", "super admin", etc.
   const showSystemCard = searchQuery === '' ||
@@ -305,7 +309,7 @@ export function UsersManagement() {
             placeholder="Search colleges or system..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 shadow-sm"
+            className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary w-64 shadow-sm"
           />
           <div className="absolute left-3 top-2.5 text-gray-400">
             <Search className="w-4 h-4" />
@@ -318,12 +322,12 @@ export function UsersManagement() {
         {showSystemCard && (
           <div
             onClick={() => { setSelectedInstId('system'); setSearchQuery(''); }}
-            className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
+            className="bg-brand-card p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
           >
-            <div className="p-4 bg-purple-50 rounded-full mb-4 group-hover:bg-purple-100 transition-colors">
+            <div className="p-4 bg-brand-base/20 rounded-full mb-4 group-hover:bg-brand-base/40 transition-colors">
               <ImageWithFallback src={null} fallbackSrc={HindusthanLogo} alt="System Logo" className="w-8 h-8 object-contain" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Hindusthan Educational Institutions</h3>
+            <h3 className="text-lg font-semibold text-brand-text mb-1">Hindusthan Educational Institutions</h3>
             <p className="text-sm text-gray-500">Super Admins / System</p>
             <div className="mt-4 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
               {systemUsersCount} Users
@@ -333,21 +337,21 @@ export function UsersManagement() {
 
         {/* Institution Cards */}
         {filteredInstitutions.map(inst => {
-          const count = users.filter(u => u.institution_id === inst.id).length;
+          const count = users.filter(u => u.institution_id === inst.id && u.role !== 'super_admin').length;
           return (
             <div
               key={inst.id}
               onClick={() => { setSelectedInstId(inst.id); setSearchQuery(''); }}
-              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
+              className="bg-brand-card p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
             >
-              <div className="h-16 w-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+              <div className="h-16 w-16 bg-brand-base/20 rounded-full flex items-center justify-center mb-4 overflow-hidden">
                 <ImageWithFallback
                   src={inst.logo_url}
                   alt={inst.name}
                   className="h-10 w-10 object-contain"
                 />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">{inst.name}</h3>
+              <h3 className="text-lg font-semibold text-brand-text mb-1">{inst.name}</h3>
               <p className="text-sm text-gray-500">{inst.short_name}</p>
               <div className="mt-4 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
                 {count} Users
@@ -368,7 +372,7 @@ export function UsersManagement() {
             setFormData(prev => ({ ...prev, institution_id: '', role: 'department_user' }));
             setShowForm(true);
           }}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:-translate-y-1"
+          className="flex items-center px-6 py-3 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-secondary transition-transform transform hover:-translate-y-1"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add User

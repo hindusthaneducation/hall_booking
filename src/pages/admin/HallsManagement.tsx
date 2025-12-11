@@ -222,7 +222,7 @@ export function HallsManagement() {
                 placeholder="Search halls..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64 shadow-sm"
+                className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary w-full sm:w-64 shadow-sm"
               />
               <div className="absolute left-3 top-2.5 text-gray-400">
                 <Search className="w-4 h-4" />
@@ -234,7 +234,7 @@ export function HallsManagement() {
                 setFormData(prev => ({ ...prev, institution_id: selectedInstId }));
                 setShowForm(true);
               }}
-              className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+              className="flex items-center justify-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-secondary transition-colors shadow-sm whitespace-nowrap"
             >
               <Plus className="w-5 h-5 mr-2" />
               Add Hall
@@ -334,7 +334,7 @@ export function HallsManagement() {
             placeholder="Search colleges..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 shadow-sm"
+            className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary w-64 shadow-sm"
           />
           <div className="absolute left-3 top-2.5 text-gray-400">
             <Search className="w-4 h-4" />
@@ -349,9 +349,9 @@ export function HallsManagement() {
             <div
               key={inst.id}
               onClick={() => handleSelectInstitution(inst.id)}
-              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
+              className="bg-brand-card p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
             >
-              <div className="h-16 w-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+              <div className="h-16 w-16 bg-brand-base/20 rounded-full flex items-center justify-center mb-4 overflow-hidden">
                 <ImageWithFallback
                   src={inst.logo_url}
                   alt={inst.name}
@@ -379,7 +379,7 @@ export function HallsManagement() {
             setFormData(prev => ({ ...prev, institution_id: '' }));
             setShowForm(true);
           }}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:-translate-y-1"
+          className="flex items-center px-6 py-3 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-secondary transition-transform transform hover:-translate-y-1"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Hall Directly

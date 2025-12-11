@@ -85,36 +85,36 @@ export function MyBookings() {
       <div className="mb-6 flex items-center space-x-2">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-md font-medium transition-colors ${filter === 'all'
-            ? 'bg-blue-600 text-white'
-            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'all'
+            ? 'bg-brand-primary text-white'
+            : 'bg-brand-card border border-gray-300 text-brand-text hover:bg-brand-base/50'
             }`}
         >
-          All
+          All Bookings
         </button>
         <button
           onClick={() => setFilter('pending')}
-          className={`px-4 py-2 rounded-md font-medium transition-colors ${filter === 'pending'
-            ? 'bg-yellow-600 text-white'
-            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'pending'
+            ? 'bg-brand-primary text-white'
+            : 'bg-brand-card border border-gray-300 text-brand-text hover:bg-brand-base/50'
             }`}
         >
           Pending
         </button>
         <button
           onClick={() => setFilter('approved')}
-          className={`px-4 py-2 rounded-md font-medium transition-colors ${filter === 'approved'
-            ? 'bg-green-600 text-white'
-            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'approved'
+            ? 'bg-brand-primary text-white'
+            : 'bg-brand-card border border-gray-300 text-brand-text hover:bg-brand-base/50'
             }`}
         >
           Approved
         </button>
         <button
           onClick={() => setFilter('rejected')}
-          className={`px-4 py-2 rounded-md font-medium transition-colors ${filter === 'rejected'
-            ? 'bg-red-600 text-white'
-            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'rejected'
+            ? 'bg-brand-primary text-white'
+            : 'bg-brand-card border border-gray-300 text-brand-text hover:bg-brand-base/50'
             }`}
         >
           Rejected

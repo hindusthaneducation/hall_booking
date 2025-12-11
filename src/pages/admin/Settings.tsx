@@ -9,6 +9,7 @@ export function Settings() {
     const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [registrationActive, setRegistrationActive] = useState(true);
 
     // Password Change State
     const [passwords, setPasswords] = useState({
@@ -21,7 +22,35 @@ export function Settings() {
         if (profile) {
             setFullName(profile.full_name);
         }
+        fetchSettings();
     }, [profile]);
+
+    const fetchSettings = async () => {
+        try {
+            const { data } = await api.get<{ value: boolean }>('/settings/registration_active');
+            if (data) {
+                setRegistrationActive(data.value);
+            }
+        } catch (error) {
+            console.error('Error fetching settings:', error);
+        }
+    };
+
+    const handleRegistrationToggle = async () => {
+        const newValue = !registrationActive;
+        setRegistrationActive(newValue); // Optimistic update
+        try {
+            // Upsert setting
+            await api.post('/settings', {
+                key: 'registration_active',
+                value: newValue
+            });
+        } catch (error) {
+            console.error('Error updating setting:', error);
+            setRegistrationActive(!newValue); // Revert
+            alert('Failed to update setting');
+        }
+    };
 
     const handleProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,10 +108,10 @@ export function Settings() {
                     <p className="text-gray-600">Manage your profile and security preferences</p>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200">
                     <div className="p-6 border-b border-gray-200">
-                        <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                            <User className="w-5 h-5 mr-2 text-blue-600" />
+                        <h2 className="text-xl font-semibold text-brand-text flex items-center">
+                            <User className="w-5 h-5 mr-2 text-brand-primary" />
                             Profile Information
                         </h2>
                     </div>
@@ -111,7 +140,7 @@ export function Settings() {
                                 type="text"
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                             />
                         </div>
 
@@ -119,7 +148,7 @@ export function Settings() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-secondary transition-colors disabled:opacity-50"
                             >
                                 <Save className="w-4 h-4 mr-2" />
                                 {loading ? 'Saving...' : 'Save Profile'}
@@ -130,10 +159,10 @@ export function Settings() {
             </div>
 
             {/* Password Change Section */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200">
                 <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                        <Lock className="w-5 h-5 mr-2 text-blue-600" />
+                    <h2 className="text-xl font-semibold text-brand-text flex items-center">
+                        <Lock className="w-5 h-5 mr-2 text-brand-primary" />
                         Change Password
                     </h2>
                 </div>
@@ -146,7 +175,7 @@ export function Settings() {
                             value={passwords.old_password}
                             onChange={(e) => setPasswords({ ...passwords, old_password: e.target.value })}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                         />
                     </div>
 
@@ -158,7 +187,7 @@ export function Settings() {
                             onChange={(e) => setPasswords({ ...passwords, new_password: e.target.value })}
                             required
                             minLength={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                         />
                     </div>
 
@@ -170,7 +199,7 @@ export function Settings() {
                             onChange={(e) => setPasswords({ ...passwords, confirm_password: e.target.value })}
                             required
                             minLength={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                         />
                     </div>
 
@@ -187,8 +216,42 @@ export function Settings() {
                 </form>
             </div>
 
+            {/* System Control Section (Super Admin Only) */}
+            {profile.role === 'super_admin' && (
+                <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200">
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-semibold text-brand-text flex items-center">
+                            <Shield className="w-5 h-5 mr-2 text-brand-primary" />
+                            System Controls
+                        </h2>
+                    </div>
+                    <div className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-medium text-gray-900">Registration Status</h3>
+                                <p className="text-sm text-gray-500">Allow new users to register individually.</p>
+                            </div>
+                            <button
+                                onClick={handleRegistrationToggle}
+                                disabled={loading}
+                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 ${registrationActive ? 'bg-brand-primary' : 'bg-gray-200'
+                                    }`}
+                            >
+                                <span className="sr-only">Use setting</span>
+                                <span
+                                    aria-hidden="true"
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${registrationActive ? 'translate-x-5' : 'translate-x-0'
+                                        }`}
+                                />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showSuccess && (
                 <SuccessModal
+                    title="Success"
                     message="Profile updated successfully!"
                     onClose={() => setShowSuccess(false)}
                 />

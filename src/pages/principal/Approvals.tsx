@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { useAuth } from '../../contexts/AuthContext';
 import { Building2, Calendar, Clock, FileText, User, School } from 'lucide-react';
 import type { Database } from '../../types/database';
 
@@ -13,7 +12,6 @@ type Booking = BookingRow & {
 };
 
 export function Approvals() {
-  const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -108,60 +106,66 @@ export function Approvals() {
           <p className="text-gray-600">No pending approvals</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {bookings.map((booking) => (
-            <div key={booking.id} className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <div key={booking.id} className="bg-brand-card rounded-lg border border-gray-200 overflow-hidden shadow-sm flex flex-col">
+              <div className="p-5 flex-grow">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
                     {booking.event_title}
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600">
-                    <div className="flex items-center">
-                      <Building2 className="w-4 h-4 mr-2" />
-                      <span>{booking.hall_name}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>{new Date(booking.booking_date).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span>{booking.event_time}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2" />
-                      <span>{booking.department_name}</span>
-                    </div>
-                    {booking.institution_name && (
-                      <div className="flex items-center text-indigo-600">
-                        <School className="w-4 h-4 mr-2" />
-                        <span className="font-medium">{booking.institution_name}</span>
-                      </div>
-                    )}
-                  </div>
                 </div>
+
+                <div className="space-y-3 text-sm text-gray-600">
+                  <div className="flex items-center">
+                    <Building2 className="w-4 h-4 mr-2 text-brand-primary/70 shrink-0" />
+                    <span className="truncate" title={booking.hall_name}>{booking.hall_name}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-2 text-brand-primary/70 shrink-0" />
+                    <span>{new Date(booking.booking_date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-2 text-brand-primary/70 shrink-0" />
+                    <span>{booking.event_time}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <User className="w-4 h-4 mr-2 text-brand-primary/70 shrink-0" />
+                    <span className="truncate" title={booking.department_name}>{booking.department_name}</span>
+                  </div>
+                  {booking.institution_name && (
+                    <div className="flex items-center text-brand-primary">
+                      <School className="w-4 h-4 mr-2 shrink-0" />
+                      <span className="font-medium truncate" title={booking.institution_name}>{booking.institution_name}</span>
+                    </div>
+                  )}
+                </div>
+
+                {booking.event_description && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-sm text-gray-500 line-clamp-2">{booking.event_description}</p>
+                  </div>
+                )}
               </div>
 
-              {booking.event_description && (
-                <p className="text-gray-600 mb-4">{booking.event_description}</p>
-              )}
-
-              <div className="flex items-center space-x-3">
-                {booking.approval_letter_url && (
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                {booking.approval_letter_url ? (
                   <a
                     href={booking.approval_letter_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="text-brand-primary hover:text-brand-secondary text-sm font-medium flex items-center"
                   >
-                    <FileText className="w-4 h-4 mr-2" />
-                    View Document
+                    <FileText className="w-4 h-4 mr-1" />
+                    Letter
                   </a>
+                ) : (
+                  <span className="text-gray-400 text-sm italic">No Letter</span>
                 )}
+
                 <button
                   onClick={() => setSelectedBooking(booking)}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-md hover:bg-brand-secondary transition-colors"
                 >
                   Review
                 </button>

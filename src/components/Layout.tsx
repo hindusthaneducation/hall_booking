@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   Building2,
   LayoutDashboard,
@@ -13,6 +14,7 @@ import {
   X,
   School,
   Layers,
+  Palette,
 } from 'lucide-react';
 import HindusthanLogo from '../images/hindusthan_logo.webp';
 import { ImageWithFallback } from './ImageWithFallback';
@@ -24,10 +26,13 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const { profile, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // ... (rest of the file content until return)
+  // Restoring deleted logic
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
@@ -39,14 +44,15 @@ export function Layout({ children }: LayoutProps) {
       document.title = `${profile.institution.name} - Hall Booking`;
 
       // Update Favicon
-      if (profile.institution.logo_url) {
+      if ((profile.institution as any).logo_url) {
         const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement('link');
         link.type = 'image/png';
         link.rel = 'icon';
         // Handle relative vs absolute URL
-        link.href = profile.institution.logo_url.startsWith('http')
-          ? profile.institution.logo_url
-          : `${import.meta.env.VITE_API_BASE_URL}${profile.institution.logo_url}`;
+        const logoUrl = (profile.institution as any).logo_url;
+        link.href = logoUrl.startsWith('http')
+          ? logoUrl
+          : `${import.meta.env.VITE_API_BASE_URL}${logoUrl}`;
         document.getElementsByTagName('head')[0].appendChild(link);
       }
     } else {
@@ -70,7 +76,7 @@ export function Layout({ children }: LayoutProps) {
     ],
     super_admin: [
       { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/approvals', icon: FileCheck, label: 'Pending Approvals' }, // New Access
+      { path: '/approvals', icon: FileCheck, label: 'Pending Approvals' },
       { path: '/institutions-management', icon: School, label: 'Manage Institutions' },
       { path: '/departments-management', icon: Layers, label: 'Manage Departments' },
       { path: '/halls-management', icon: Building2, label: 'Manage Halls' },
@@ -84,30 +90,40 @@ export function Layout({ children }: LayoutProps) {
   const currentNavItems = profile ? navItems[profile.role] : [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-20">
+    <div className="min-h-screen bg-brand-base transition-colors duration-300">
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-brand-card border-b border-gray-200 z-20">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center">
+            {/* ... Logo logic ... */}
             {profile?.role === 'super_admin' ? (
               <ImageWithFallback src={null} fallbackSrc={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
             ) : (
-              <ImageWithFallback src={profile?.institution?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+              <ImageWithFallback src={(profile?.institution as any)?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
             )}
-            <span className="font-semibold text-gray-900">
-              {profile?.role === 'super_admin' ? 'Hindusthan Admin' : (profile?.institution?.short_name || 'Hall Booking')}
+            <span className="font-semibold text-brand-text">
+              {profile?.role === 'super_admin' ? 'Hindusthan Admin' : ((profile?.institution as any)?.short_name || 'Hall Booking')}
             </span>
           </div>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-md text-gray-600 hover:bg-gray-100"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-md text-gray-500 hover:bg-gray-100"
+              title="Toggle Theme"
+            >
+              <Palette className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-md text-gray-600 hover:bg-gray-100"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </div>
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-gray-200 z-30 transition-transform duration-300 flex flex-col ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-brand-card border-r border-gray-200 z-30 transition-transform duration-300 flex flex-col ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           } lg:translate-x-0`}
       >
         <div className="p-6 border-b border-gray-200 shrink-0">
@@ -115,13 +131,13 @@ export function Layout({ children }: LayoutProps) {
             {profile?.role === 'super_admin' ? (
               <ImageWithFallback src={null} fallbackSrc={HindusthanLogo} alt="Logo" className="w-10 h-10 object-contain mr-3" />
             ) : (
-              <ImageWithFallback src={profile?.institution?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-10 h-10 object-contain mr-3" />
+              <ImageWithFallback src={(profile?.institution as any)?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-10 h-10 object-contain mr-3" />
             )}
             <div>
-              <h1 className="text-lg font-semibold text-gray-900 leading-tight">
+              <h1 className="text-lg font-semibold text-brand-text leading-tight">
                 {profile?.role === 'super_admin'
                   ? 'Hindusthan Educational Institutions'
-                  : (profile?.institution?.name || profile?.institution?.short_name || 'Hall Booking')}
+                  : (profile?.institution?.name || (profile?.institution as any)?.short_name || 'Hall Booking')}
               </h1>
               <p className="text-xs text-gray-500 capitalize">
                 {profile?.role === 'department_user'
@@ -142,11 +158,11 @@ export function Layout({ children }: LayoutProps) {
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center px-4 py-3 rounded-lg transition-colors ${isActive
-                  ? 'bg-blue-50 text-blue-600'
+                  ? 'bg-brand-primary text-white shadow-md'
                   : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >
-                <Icon className="w-5 h-5 mr-3" />
+                <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-white' : 'text-gray-500'}`} />
                 <span className="font-medium">{item.label}</span>
               </Link>
             );
@@ -154,13 +170,22 @@ export function Layout({ children }: LayoutProps) {
         </nav>
 
         <div className="p-4 border-t border-gray-200 shrink-0">
+          {/* Theme Toggle for Desktop */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors mb-2"
+          >
+            <Palette className="w-5 h-5 mr-3" />
+            <span className="font-medium">Theme: {theme === 'default' ? 'Default' : 'College'}</span>
+          </button>
+
           <div className="mb-3 px-4">
-            <p className="text-sm font-medium text-gray-900">{profile?.full_name}</p>
+            <p className="text-sm font-medium text-brand-text">{profile?.full_name}</p>
             <p className="text-xs text-gray-500">{profile?.email}</p>
           </div>
           <button
             onClick={handleSignOut}
-            className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3" />
             <span className="font-medium">Sign Out</span>

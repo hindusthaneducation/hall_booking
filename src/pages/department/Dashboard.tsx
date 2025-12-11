@@ -137,19 +137,19 @@ export function DepartmentDashboard() {
           <div className="space-y-3">
             <Link
               to="/halls"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-brand-base/50 transition-colors"
             >
-              <Building2 className="w-6 h-6 text-blue-600 mr-3" />
+              <Building2 className="w-6 h-6 text-brand-primary mr-3" />
               <div>
-                <p className="font-medium text-gray-900">Browse Halls</p>
-                <p className="text-sm text-gray-600">View available halls and make bookings</p>
+                <h3 className="font-semibold text-brand-text">Browse Halls</h3>
+                <p className="text-sm text-gray-500">View available seminar halls</p>
               </div>
             </Link>
             <Link
               to="/my-bookings"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-brand-base/50 transition-colors"
             >
-              <Calendar className="w-6 h-6 text-blue-600 mr-3" />
+              <Calendar className="w-6 h-6 text-brand-primary mr-3" />
               <div>
                 <p className="font-medium text-gray-900">My Bookings</p>
                 <p className="text-sm text-gray-600">View all your booking requests</p>

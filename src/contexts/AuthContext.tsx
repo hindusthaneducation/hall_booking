@@ -13,6 +13,7 @@ type Profile = Database['public']['Tables']['profiles']['Row'] & {
     name: string;
     short_name: string;
   };
+  theme_preference?: 'default' | 'hindusthan';
 };
 
 interface AuthContextType {
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const { data, error } = await api.get<{ user: Profile }>('/auth/me');
+        const { data } = await api.get<{ user: Profile }>('/auth/me');
         if (data && data.user) {
           setProfile(data.user);
           setUser({ id: data.user.id, email: data.user.email });

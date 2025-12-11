@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
 import type { Institution } from '../../lib/types';
-import HindusthanLogo from '../../images/hindusthan_logo.webp';
 import { ImageWithFallback } from '../../components/ImageWithFallback';
 
 export function InstitutionsManagement() {
@@ -102,16 +101,16 @@ export function InstitutionsManagement() {
                 </div>
                 <button
                     onClick={() => setShowForm(true)}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-secondary transition-colors"
                 >
                     <Plus className="w-5 h-5 mr-2" />
                     Add Institution
                 </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
+            <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-brand-base/20">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logo</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
@@ -132,7 +131,7 @@ export function InstitutionsManagement() {
                                 <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{item.name}</div></td>
                                 <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-600">{item.short_name || '-'}</div></td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-900 mr-3"><Edit className="w-4 h-4" /></button>
+                                    <button onClick={() => handleEdit(item)} className="text-brand-primary hover:text-brand-secondary mr-3"><Edit className="w-4 h-4" /></button>
                                     <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900"><Trash2 className="w-4 h-4" /></button>
                                 </td>
                             </tr>
@@ -169,7 +168,7 @@ export function InstitutionsManagement() {
                             </div>
                             <div className="flex justify-end space-x-3 pt-4">
                                 <button type="button" onClick={resetForm} className="px-4 py-2 border rounded-md">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md">Save</button>
+                                <button type="submit" className="px-4 py-2 bg-brand-primary text-white rounded-md">Save</button>
                             </div>
                         </form>
                     </div>

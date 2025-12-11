@@ -13,6 +13,7 @@ export interface User {
     role: 'department_user' | 'principal' | 'super_admin';
     department_id: string | null;
     institution_id: string | null;
+    theme_preference?: 'default' | 'hindusthan';
     department?: {
         id: string;
         name: string;

@@ -153,6 +153,35 @@ app.get('/api/admin/fix-schema', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
     const { email, password, full_name, role, department_id, institution_id } = req.body;
     try {
+        // Enforce Registration Control (unless it's an authenticated Admin/Principal creating a user)
+        let isAdminOverride = false;
+        const authHeader = req.headers['authorization'];
+        if (authHeader) {
+            const token = authHeader.split(' ')[1];
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (decoded && (decoded.role === 'super_admin' || decoded.role === 'principal')) {
+                    isAdminOverride = true;
+                }
+            } catch (e) { /* ignore invalid token, treat as public */ }
+        }
+
+        if (!isAdminOverride) {
+            try {
+                const [settings] = await pool.query('SELECT setting_value FROM settings WHERE setting_key = "registration_active"');
+                if (settings.length > 0) {
+                    const isActive = settings[0].setting_value;
+                    const val = typeof isActive === 'object' && isActive !== null && 'value' in isActive ? isActive.value : isActive;
+
+                    if (val === false || val === 'false') {
+                        return res.status(403).json({ error: 'Registration is currently closed by the administrator.' });
+                    }
+                }
+            } catch (settingsError) {
+                console.warn('⚠️ Could not check registration status (assuming open):', settingsError.message);
+            }
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         const id = uuidv4();
 
@@ -266,6 +295,65 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     }
 });
 
+// --- Settings Routes ---
+
+app.get('/api/settings/:key', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT setting_value FROM settings WHERE setting_key = ?', [req.params.key]);
+        if (rows.length === 0) {
+            // Return default for registration_active if not set
+            if (req.params.key === 'registration_active') {
+                return res.json({ value: true });
+            }
+            return res.status(404).json({ error: 'Setting not found' });
+        }
+
+        // Return structured object { value: ... } to match frontend expectation
+        // DB stores JSON. If we store `true` (bool), we return { value: true }
+        // If we store `{"value": true}`, we return that.
+        // Let's coerce to { value: x } format.
+        let val = rows[0].setting_value;
+        // Parse JSON if it's a string (fixes "false" string being truthy in frontend)
+        if (typeof val === 'string') {
+            try {
+                val = JSON.parse(val);
+            } catch (e) {
+                // validation failed, treat as raw string
+            }
+        }
+        const responseVal = (typeof val === 'object' && val !== null && 'value' in val) ? val.value : val;
+
+        res.json({ value: responseVal });
+    } catch (error) {
+        // If table doesn't exist, treat as 404/default
+        if (error.code === 'ER_NO_SUCH_TABLE') {
+            if (req.params.key === 'registration_active') return res.json({ value: true });
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/settings', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+
+    const { key, value } = req.body;
+    if (!key) return res.status(400).json({ error: 'Key is required' });
+
+    try {
+        // Store value as JSON. wrapping in object? 
+        // Settings.tsx sends boolean `value`.
+        // Let's store just the value or object? 
+        // To avoid ambiguity, let's store directly.
+        await pool.query(
+            'INSERT INTO settings (setting_key, setting_value, updated_by) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE setting_value = ?, updated_by = ?',
+            [key, JSON.stringify(value), req.user.id, JSON.stringify(value), req.user.id]
+        );
+        res.json({ message: 'Setting updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // --- User Management Routes ---
 
 app.get('/api/users', authenticateToken, async (req, res) => {
@@ -347,9 +435,19 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
         if (req.params.id === req.user.id) {
             return res.status(400).json({ error: 'Cannot delete your own account' });
         }
+        // Check for dependencies (Bookings)
+        const [bookings] = await pool.query('SELECT id FROM bookings WHERE user_id = ? LIMIT 1', [req.params.id]);
+        if (bookings.length > 0) {
+            return res.status(409).json({ error: 'Cannot delete user: User has associated bookings. Please reassign or delete bookings first.' });
+        }
+
         await pool.query('DELETE FROM users WHERE id = ?', [req.params.id]);
         res.json({ message: 'User deleted successfully' });
     } catch (error) {
+        // Handle FK constraint error if missed above
+        if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+            return res.status(409).json({ error: 'Cannot delete user due to existing associated records.' });
+        }
         res.status(500).json({ error: error.message });
     }
 });
@@ -494,6 +592,9 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
     // Input validation for times
     if (!start_time || !end_time) {
         return res.status(400).json({ error: 'Start time and End time are required.' });
+    }
+    if (start_time >= end_time) {
+        return res.status(400).json({ error: 'Start time must be before End time.' });
     }
 
     // Check for Overlapping Bookings
@@ -675,7 +776,7 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
         // 4. Recent Bookings (Top 5)
         // Re-using the secure querying logic similar to /api/bookings
         let bookingsQuery = `
-            SELECT b.id, b.event_title, b.booking_date, b.status, h.name as hall_name, i.name as institution_name
+            SELECT b.id, b.hall_id, b.event_title, b.booking_date, b.status, h.name as hall_name, i.name as institution_name
             FROM bookings b
             JOIN halls h ON b.hall_id = h.id
             JOIN institutions i ON h.institution_id = i.id
@@ -820,25 +921,48 @@ app.delete('/api/bookings/:id', authenticateToken, async (req, res) => {
 
 // --- Department Routes ---
 
-app.get('/api/departments', authenticateToken, async (req, res) => {
+app.get('/api/departments', async (req, res) => {
     try {
         let query = 'SELECT * FROM departments';
         const params = [];
 
-        // Filter by institution if user has one (except maybe super_admin wanting to see all? 
-        // But usually super admin selects an institution first. 
-        // For now, if super_admin provides ?institution_id, use it.
-        // If normal user, enforce their institution_id.
+        // If authenticated, we might filter by institution (optional)
+        // But for Registration (unauthenticated), we need to show list.
+        // We'll check for auth header manually if we want to support both, 
+        // OR just make it public and filter if query params exist.
 
-        if (req.user.role === 'super_admin') {
+        // Let's support optional auth for filtering? 
+        // Or simpler: Just return all departments for now as the registration form requires it.
+        // If we want to strictly filter for logged in users, we can check header manually.
+
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        let user = null;
+
+        if (token) {
+            try {
+                user = jwt.verify(token, JWT_SECRET);
+            } catch (e) { /* ignore invalid token for public access */ }
+        }
+
+        if (user) {
+            if (user.role === 'super_admin') {
+                if (req.query.institution_id) {
+                    query += ' WHERE institution_id = ?';
+                    params.push(req.query.institution_id);
+                }
+            } else {
+                if (user.institution_id) {
+                    query += ' WHERE institution_id = ?';
+                    params.push(user.institution_id);
+                }
+            }
+        } else {
+            // Public / Guest:
+            // If query param provided, filter by it (useful for future multi-tenant registration)
             if (req.query.institution_id) {
                 query += ' WHERE institution_id = ?';
                 params.push(req.query.institution_id);
-            }
-        } else {
-            if (req.user.institution_id) {
-                query += ' WHERE institution_id = ?';
-                params.push(req.user.institution_id);
             }
         }
 
@@ -882,9 +1006,17 @@ app.put('/api/departments/:id', authenticateToken, async (req, res) => {
 app.delete('/api/departments/:id', authenticateToken, async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
     try {
+        // Check dependencies
+        const [users] = await pool.query('SELECT id FROM users WHERE department_id = ? LIMIT 1', [req.params.id]);
+        if (users.length > 0) return res.status(409).json({ error: 'Cannot delete department: Users are assigned to it.' });
+
+        const [bookings] = await pool.query('SELECT id FROM bookings WHERE department_id = ? LIMIT 1', [req.params.id]);
+        if (bookings.length > 0) return res.status(409).json({ error: 'Cannot delete department: It has associated bookings.' });
+
         await pool.query('DELETE FROM departments WHERE id = ?', [req.params.id]);
         res.json({ message: 'Department deleted' });
     } catch (error) {
+        if (error.code === 'ER_ROW_IS_REFERENCED_2') return res.status(409).json({ error: 'Cannot delete department due to associated records.' });
         res.status(500).json({ error: error.message });
     }
 });

@@ -9,6 +9,29 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      institutions: {
+        Row: {
+          id: string;
+          name: string;
+          short_name: string;
+          logo_url: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          short_name?: string;
+          logo_url?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          short_name?: string;
+          logo_url?: string;
+          created_at?: string;
+        };
+      };
       departments: {
         Row: {
           id: string;
@@ -42,6 +65,8 @@ export interface Database {
           seating_capacity: number;
           hall_type: string;
           is_active: boolean;
+          is_ac: boolean;
+          has_sound_system: boolean;
           institution_id: string;
           created_at: string;
           updated_at: string;

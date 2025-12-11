@@ -242,16 +242,16 @@ export function DepartmentsManagement() {
                         <div
                             key={inst.id}
                             onClick={() => { setSelectedInstId(inst.id); setSearchQuery(''); }}
-                            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-shadow text-center flex flex-col items-center"
+                            className="bg-brand-card rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-shadow text-center flex flex-col items-center"
                         >
-                            <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+                            <div className="h-16 w-16 bg-brand-base/20 rounded-full flex items-center justify-center mb-4 overflow-hidden">
                                 <ImageWithFallback
                                     src={inst.logo_url}
                                     alt={inst.name}
                                     className="h-10 w-10 object-contain"
                                 />
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1">{inst.name}</h3>
+                            <h3 className="text-lg font-semibold text-brand-text mb-1">{inst.name}</h3>
                             <p className="text-sm text-gray-500 mb-4">{inst.short_name}</p>
                             <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                 {deptCount} Departments
@@ -272,7 +272,7 @@ export function DepartmentsManagement() {
                         setFormData(prev => ({ ...prev, institution_id: '' }));
                         setShowForm(true);
                     }}
-                    className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:-translate-y-1"
+                    className="flex items-center px-6 py-3 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-secondary transition-transform transform hover:-translate-y-1"
                 >
                     <Plus className="w-5 h-5 mr-2" />
                     Add Dept
