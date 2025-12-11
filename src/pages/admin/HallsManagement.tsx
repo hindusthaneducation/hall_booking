@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, X, Upload, ArrowLeft, Search, GraduationCap, Users } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, X, Upload, ArrowLeft, Search, GraduationCap, Users } from 'lucide-react';
 import type { Database } from '../../types/database';
 import type { Institution, User } from '../../lib/types';
 import HindusthanLogo from '../../images/hindusthan_logo.webp';
+import { ImageWithFallback } from '../../components/ImageWithFallback';
 
 type Hall = Database['public']['Tables']['halls']['Row'];
 type HallInsert = Database['public']['Tables']['halls']['Insert'];
@@ -351,11 +352,11 @@ export function HallsManagement() {
               className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center text-center group"
             >
               <div className="h-16 w-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4 overflow-hidden">
-                {inst.logo_url ? (
-                  <img src={`${import.meta.env.VITE_API_BASE_URL}${inst.logo_url}`} alt={inst.name} className="h-10 w-10 object-contain" />
-                ) : (
-                  <img src={HindusthanLogo} alt="Logo" className="h-10 w-10 object-contain" />
-                )}
+                <ImageWithFallback
+                  src={inst.logo_url}
+                  alt={inst.name}
+                  className="h-10 w-10 object-contain"
+                />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">{inst.name}</h3>
               <p className="text-sm text-gray-500">{inst.short_name}</p>

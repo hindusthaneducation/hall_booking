@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { Plus, Edit, Trash2, X, School } from 'lucide-react';
+import { Plus, Edit, Trash2, X } from 'lucide-react';
 import type { Institution } from '../../lib/types';
 import HindusthanLogo from '../../images/hindusthan_logo.webp';
+import { ImageWithFallback } from '../../components/ImageWithFallback';
 
 export function InstitutionsManagement() {
     const [institutions, setInstitutions] = useState<Institution[]>([]);
@@ -108,7 +109,7 @@ export function InstitutionsManagement() {
                 </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
@@ -122,11 +123,11 @@ export function InstitutionsManagement() {
                         {institutions.map((item) => (
                             <tr key={item.id}>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    {item.logo_url ? (
-                                        <img src={`${import.meta.env.VITE_API_BASE_URL}${item.logo_url}`} alt="Logo" className="h-10 w-10 object-contain" />
-                                    ) : (
-                                        <img src={HindusthanLogo} alt="Logo" className="h-10 w-10 object-contain" />
-                                    )}
+                                    <ImageWithFallback
+                                        src={item.logo_url}
+                                        alt="Logo"
+                                        className="h-10 w-10 object-contain"
+                                    />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{item.name}</div></td>
                                 <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-600">{item.short_name || '-'}</div></td>
