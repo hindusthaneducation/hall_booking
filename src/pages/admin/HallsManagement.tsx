@@ -4,7 +4,7 @@ import { api } from '../../lib/api';
 import { Building2, Plus, Edit, Trash2, X, Upload, ArrowLeft, Search, GraduationCap, Users } from 'lucide-react';
 import type { Database } from '../../types/database';
 import type { Institution, User } from '../../lib/types';
-import HindusthanLogo from '../../images/hindusthan_logo.webp';
+
 import { ImageWithFallback } from '../../components/ImageWithFallback';
 
 type Hall = Database['public']['Tables']['halls']['Row'];
@@ -185,29 +185,29 @@ export function HallsManagement() {
     return (
       <div>
         <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
-          <div className="flex items-start space-x-4">
-            <button onClick={handleBackToGrid} className="p-2 hover:bg-gray-100 rounded-full transition-colors mt-1">
+          <div className="flex items-start space-x-4 w-full md:w-auto">
+            <button onClick={handleBackToGrid} className="p-2 hover:bg-gray-100 rounded-full transition-colors mt-1 shrink-0">
               <ArrowLeft className="w-6 h-6 text-gray-600" />
             </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center mb-2">
-                {institution.logo_url ? (
-                  <img src={`${import.meta.env.VITE_API_BASE_URL}${institution.logo_url}`} alt="Logo" className="w-8 h-8 object-contain mr-2" />
-                ) : (
-                  <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
-                )}
-                {institution.name}
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center mb-2 flex-wrap">
+                <ImageWithFallback
+                  src={institution.logo_url}
+                  alt={institution.name}
+                  className="w-8 h-8 object-contain mr-2 shrink-0"
+                />
+                <span className="break-words">{institution.name}</span>
               </h1>
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600 ml-8">
-                <span className="flex items-center px-3 py-1 bg-gray-100 rounded-full">
+              <div className="flex flex-wrap gap-2 md:gap-4 text-sm text-gray-600 md:ml-8">
+                <span className="flex items-center px-3 py-1 bg-gray-100 rounded-full whitespace-nowrap">
                   <Building2 className="w-4 h-4 mr-2 text-gray-500" />
                   {filteredHalls.length} Halls
                 </span>
-                <span className="flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full">
+                <span className="flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full whitespace-nowrap">
                   <Users className="w-4 h-4 mr-2" />
                   {hodCount} HODs
                 </span>
-                <span className="flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-full">
+                <span className="flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-full whitespace-nowrap">
                   <GraduationCap className="w-4 h-4 mr-2" />
                   {principalCount} Principals
                 </span>
@@ -215,14 +215,14 @@ export function HallsManagement() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full md:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
               <input
                 type="text"
                 placeholder="Search halls..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 shadow-sm"
+                className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64 shadow-sm"
               />
               <div className="absolute left-3 top-2.5 text-gray-400">
                 <Search className="w-4 h-4" />
@@ -234,7 +234,7 @@ export function HallsManagement() {
                 setFormData(prev => ({ ...prev, institution_id: selectedInstId }));
                 setShowForm(true);
               }}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+              className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
             >
               <Plus className="w-5 h-5 mr-2" />
               Add Hall
@@ -318,7 +318,7 @@ export function HallsManagement() {
   // 2. Grid View (All Institutions)
   const filteredInstitutions = institutions.filter(inst =>
     inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inst.short_name.toLowerCase().includes(searchQuery.toLowerCase())
+    (inst.short_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

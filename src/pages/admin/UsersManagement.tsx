@@ -168,13 +168,11 @@ export function UsersManagement() {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center mb-2">
-                {isSystem ? (
-                  <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
-                ) : institution?.logo_url ? (
-                  <img src={`${import.meta.env.VITE_API_BASE_URL}${institution.logo_url}`} alt="Logo" className="w-8 h-8 object-contain mr-2" />
-                ) : (
-                  <img src={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
-                )}
+                <ImageWithFallback
+                  src={!isSystem ? institution?.logo_url : null}
+                  alt={institution?.name || 'Logo'}
+                  className="w-8 h-8 object-contain mr-2"
+                />
                 {institution?.name}
               </h1>
               <div className="flex flex-wrap gap-4 text-sm text-gray-600 ml-8">

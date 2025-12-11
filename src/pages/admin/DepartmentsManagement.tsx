@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { Plus, Edit, Trash2, X, Search, ArrowLeft, School, FolderTree, GraduationCap, Users } from 'lucide-react';
 import type { Department, Institution, User } from '../../lib/types';
-import HindusthanLogo from '../../images/hindusthan_logo.webp';
+
 import { ImageWithFallback } from '../../components/ImageWithFallback';
 
 type Profile = User; // Alias for convenience if needed, or just use User
@@ -118,25 +118,25 @@ export function DepartmentsManagement() {
         return (
             <div>
                 <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
-                    <div className="flex items-start space-x-4">
-                        <button onClick={() => { setSelectedInstId(null); setSearchQuery(''); }} className="p-2 hover:bg-gray-100 rounded-full transition-colors mt-1">
+                    <div className="flex items-start space-x-4 w-full md:w-auto">
+                        <button onClick={() => { setSelectedInstId(null); setSearchQuery(''); }} className="p-2 hover:bg-gray-100 rounded-full transition-colors mt-1 shrink-0">
                             <ArrowLeft className="w-6 h-6 text-gray-600" />
                         </button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 flex items-center mb-2">
-                                <School className="w-6 h-6 mr-2 text-indigo-600" />
-                                {institution.name}
+                        <div className="flex-1">
+                            <h1 className="text-2xl font-bold text-gray-900 flex items-center mb-2 flex-wrap">
+                                <School className="w-6 h-6 mr-2 text-indigo-600 shrink-0" />
+                                <span className="break-words">{institution.name}</span>
                             </h1>
-                            <div className="flex flex-wrap gap-4 text-sm text-gray-600 ml-8">
-                                <span className="flex items-center px-3 py-1 bg-gray-100 rounded-full">
+                            <div className="flex flex-wrap gap-2 md:gap-4 text-sm text-gray-600 md:ml-8">
+                                <span className="flex items-center px-3 py-1 bg-gray-100 rounded-full whitespace-nowrap">
                                     <FolderTree className="w-4 h-4 mr-2 text-gray-500" />
                                     {filteredDepts.length} Departments
                                 </span>
-                                <span className="flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full">
+                                <span className="flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full whitespace-nowrap">
                                     <Users className="w-4 h-4 mr-2" />
                                     {hodCount} HODs
                                 </span>
-                                <span className="flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-full">
+                                <span className="flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-full whitespace-nowrap">
                                     <GraduationCap className="w-4 h-4 mr-2" />
                                     {principalCount} Principals
                                 </span>
@@ -144,14 +144,14 @@ export function DepartmentsManagement() {
                         </div>
                     </div>
 
-                    <div className="flex items-center space-x-4">
-                        <div className="relative">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full md:w-auto">
+                        <div className="relative flex-1 sm:flex-initial">
                             <input
                                 type="text"
                                 placeholder="Search departments..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 shadow-sm"
+                                className="pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64 shadow-sm"
                             />
                             <div className="absolute left-3 top-2.5 text-gray-400">
                                 <Search className="w-4 h-4" />
@@ -163,7 +163,7 @@ export function DepartmentsManagement() {
                                 setFormData(prev => ({ ...prev, institution_id: selectedInstId }));
                                 setShowForm(true);
                             }}
-                            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+                            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
                         >
                             <Plus className="w-5 h-5 mr-2" />
                             Add Department
@@ -171,7 +171,7 @@ export function DepartmentsManagement() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
@@ -210,7 +210,7 @@ export function DepartmentsManagement() {
     // Grid View
     const filteredInstitutions = institutions.filter(inst =>
         inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        inst.short_name.toLowerCase().includes(searchQuery.toLowerCase())
+        (inst.short_name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -237,7 +237,7 @@ export function DepartmentsManagement() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredInstitutions.map(inst => {
                     const deptCount = departments.filter(d => d.institution_id === inst.id).length;
-                    const logo = inst.logo_url ? `${import.meta.env.VITE_API_BASE_URL}${inst.logo_url}` : null;
+
                     return (
                         <div
                             key={inst.id}
@@ -245,11 +245,11 @@ export function DepartmentsManagement() {
                             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-shadow text-center flex flex-col items-center"
                         >
                             <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 overflow-hidden">
-                                {logo ? (
-                                    <img src={logo} alt={inst.name} className="h-10 w-10 object-contain" />
-                                ) : (
-                                    <img src={HindusthanLogo} alt="Logo" className="h-10 w-10 object-contain" />
-                                )}
+                                <ImageWithFallback
+                                    src={inst.logo_url}
+                                    alt={inst.name}
+                                    className="h-10 w-10 object-contain"
+                                />
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-1">{inst.name}</h3>
                             <p className="text-sm text-gray-500 mb-4">{inst.short_name}</p>

@@ -110,11 +110,11 @@ export function HallsList() {
             </button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                {institution.logo_url ? (
-                  <img src={`${import.meta.env.VITE_API_BASE_URL}${institution.logo_url}`} alt="Logo" className="h-10 w-10 object-contain mr-3" />
-                ) : (
-                  <img src={HindusthanLogo} alt="Logo" className="h-10 w-10 object-contain mr-3" />
-                )}
+                <ImageWithFallback
+                  src={institution.logo_url}
+                  alt={institution.name}
+                  className="h-10 w-10 object-contain mr-3"
+                />
                 {institution.name}
               </h1>
               <p className="text-gray-500 mt-1 ml-14">Browse available halls and facilities</p>
