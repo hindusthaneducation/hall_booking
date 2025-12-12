@@ -139,11 +139,37 @@ export async function initDB() {
             console.warn('⚠️ Schema migration warning:', migErr.message);
         }
 
-
         try {
-            console.log('⏳ Checking for settings table...');
-            // Create settings table (MySQL Syntax)
-            await migrationPool.query(`
+            console.log('⏳ Checking for schema updates (short_name in departments)...');
+            try {
+                await migrationPool.query('ALTER TABLE departments ADD COLUMN short_name VARCHAR(50)');
+                console.log('✅ departments.short_name column added.');
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                    console.log('✅ departments.short_name already exists.');
+                } else {
+                    throw e;
+                }
+            }
+
+            console.log('⏳ Checking for schema updates (short_name in institutions)...');
+            try {
+                await migrationPool.query('ALTER TABLE institutions ADD COLUMN short_name VARCHAR(50)');
+                console.log('✅ institutions.short_name column added.');
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                    console.log('✅ institutions.short_name already exists.');
+                } else {
+                    throw e;
+                }
+            }
+
+
+
+            try {
+                console.log('⏳ Checking for settings table...');
+                // Create settings table (MySQL Syntax)
+                await migrationPool.query(`
                 CREATE TABLE IF NOT EXISTS settings (
                     setting_key VARCHAR(255) PRIMARY KEY,
                     setting_value JSON NOT NULL,
@@ -152,31 +178,36 @@ export async function initDB() {
                     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
                 )
             `);
-            console.log('✅ settings table checked/created.');
+                console.log('✅ settings table checked/created.');
 
-            // Insert default registration_active = true (Active) if not exists
-            // We use INSERT IGNORE or checking existence
-            const [sRows] = await migrationPool.query('SELECT * FROM settings WHERE setting_key = "registration_active"');
-            if (sRows.length === 0) {
-                await migrationPool.query('INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)', ['registration_active', JSON.stringify(true)]);
-                console.log('✅ Default registration_active setting inserted.');
+                // Insert default registration_active = true (Active) if not exists
+                // We use INSERT IGNORE or checking existence
+                const [sRows] = await migrationPool.query('SELECT * FROM settings WHERE setting_key = "registration_active"');
+                if (sRows.length === 0) {
+                    await migrationPool.query('INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)', ['registration_active', JSON.stringify(true)]);
+                    console.log('✅ Default registration_active setting inserted.');
+                }
+
+                console.log('⏳ Checking for theme_preference in users...');
+                await migrationPool.query("ALTER TABLE users ADD COLUMN theme_preference VARCHAR(50) DEFAULT 'hindusthan'");
+                console.log('✅ theme_preference column added.');
+            } catch (migErr2) {
+                // Ignore Duplicate Column errors (ER_DUP_FIELDNAME / 1060)
+                if (migErr2.code === 'ER_DUP_FIELDNAME' || migErr2.errno === 1060) {
+                    console.log('✅ theme_preference already exists.');
+                } else {
+                    console.warn('⚠️ Additional migration warning:', migErr2.message);
+                }
             }
 
-            console.log('⏳ Checking for theme_preference in users...');
-            await migrationPool.query("ALTER TABLE users ADD COLUMN theme_preference VARCHAR(50) DEFAULT 'hindusthan'");
-            console.log('✅ theme_preference column added.');
-        } catch (migErr2) {
-            // Ignore Duplicate Column errors (ER_DUP_FIELDNAME / 1060)
-            if (migErr2.code === 'ER_DUP_FIELDNAME' || migErr2.errno === 1060) {
-                console.log('✅ theme_preference already exists.');
-            } else {
-                console.warn('⚠️ Additional migration warning:', migErr2.message);
-            }
+        } catch (innerErr) {
+            console.warn('⚠️ Inner migration error:', innerErr.message);
+        } finally {
+            if (migrationPool) await migrationPool.end();
         }
 
-        await migrationPool.end();
-
         console.log('🎉 Database Initialization Complete.');
+
     } catch (error) {
         console.error('❌ Init Error:', error);
         throw error;

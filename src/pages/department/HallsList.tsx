@@ -244,7 +244,7 @@ export function HallsList() {
                   />
                 </div>
                 <div className="bg-gray-100 px-3 py-1 rounded-full text-xs font-medium text-gray-600">
-                  {hallCount} Halls
+                  {count} Halls
                 </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">

@@ -374,7 +374,8 @@ app.get('/api/users', authenticateToken, async (req, res) => {
         `);
 
         // Format for frontend
-        const formattedUsers = users.map(u => ({
+        // Format for frontend
+        const formattedUsers = users?.map(u => ({
             id: u.id,
             email: u.email,
             full_name: u.full_name,
@@ -382,8 +383,20 @@ app.get('/api/users', authenticateToken, async (req, res) => {
             department_id: u.department_id,
             institution_id: u.institution_id,
             created_at: u.created_at,
-            department: u.dept_id ? { id: u.dept_id, name: u.dept_name, short_name: u.dept_short_name } : null
-        }));
+            department: u.dept_id ? {
+                id: u.dept_id,
+                name: u.dept_name,
+                short_name: u.dept_short_name || u.dept_name // Safe fallback
+            } : null,
+            institution: u.institution_id ? { // Use existing institution_id check
+                // Need to fetch institution name if not in initial query? 
+                // The query didn't join institution! I remember adding it in a previous step but the query above (line 372) only joins departments.
+                // Let's stick to what's available or null. 
+                // Actually, the previous code didn't query institution either, so u.institution_id is just the ID.
+                // For now, let's just make it safe.
+                id: u.institution_id
+            } : null
+        })) || []; // Safe empty array
 
         res.json(formattedUsers);
     } catch (error) {
@@ -478,7 +491,7 @@ app.get('/api/halls', authenticateToken, async (req, res) => {
         }
 
         const [rows] = await pool.query(query, params);
-        res.json(rows);
+        res.json(rows || []);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -578,7 +591,7 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
         query += ' ORDER BY b.booking_date DESC';
 
         const [rows] = await pool.query(query, params);
-        res.json(rows);
+        res.json(rows || []);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

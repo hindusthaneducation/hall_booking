@@ -419,7 +419,7 @@ function renderForm(showForm: boolean, editingHall: any, formData: any, setFormD
               className={`w-full px-3 py-2 border rounded-md ${lockedInstId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
             >
               <option value="">Select Institution</option>
-              {institutions.map(inst => (
+              {institutions?.map(inst => (
                 <option key={inst.id} value={inst.id}>{inst.name}</option>
               ))}
             </select>
