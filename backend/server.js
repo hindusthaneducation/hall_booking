@@ -367,7 +367,7 @@ app.get('/api/users', authenticateToken, async (req, res) => {
     try {
         const [users] = await pool.query(`
             SELECT u.id, u.email, u.full_name, u.role, u.department_id, u.institution_id, u.created_at,
-                   d.id as dept_id, d.name as dept_name
+                   d.id as dept_id, d.name as dept_name, d.short_name as dept_short_name
             FROM users u
             LEFT JOIN departments d ON u.department_id = d.id
             ORDER BY u.created_at DESC
@@ -379,11 +379,10 @@ app.get('/api/users', authenticateToken, async (req, res) => {
             email: u.email,
             full_name: u.full_name,
             role: u.role,
-            role: u.role,
             department_id: u.department_id,
-            institution_id: u.institution_id, // Added
+            institution_id: u.institution_id,
             created_at: u.created_at,
-            department: u.dept_id ? { id: u.dept_id, name: u.dept_name } : null
+            department: u.dept_id ? { id: u.dept_id, name: u.dept_name, short_name: u.dept_short_name } : null
         }));
 
         res.json(formattedUsers);

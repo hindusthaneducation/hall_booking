@@ -134,7 +134,7 @@ export function HallsList() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredHalls.map((hall) => (
+          {filteredHalls?.map((hall) => (
             <div
               key={hall.id}
               onClick={() => navigate(`/halls/${hall.id}`)}
@@ -227,8 +227,8 @@ export function HallsList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredInstitutions.map((inst) => {
-          const hallCount = halls.filter(h => h.institution_id === inst.id).length;
+        {filteredInstitutions?.map((inst) => {
+          const count = halls?.filter(h => h.institution_id === inst.id && h.is_active).length || 0;
           return (
             <div
               key={inst.id}

@@ -41,6 +41,8 @@ export function AllBookings() {
       if (institutionsRes.data) setInstitutions(institutionsRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setBookings([]);
+      setInstitutions([]);
     } finally {
       setLoading(false);
     }
@@ -69,7 +71,7 @@ export function AllBookings() {
     const headers = ['Event Title', 'Hall', 'Department', 'Institution', 'Date', 'Time', 'Status'];
     const csvContent = [
       headers.join(','),
-      ...filteredBookings.map(b => [
+      ...filteredBookings?.map(b => [
         `"${b.event_title.replace(/"/g, '""')}"`,
         `"${b.hall_name.replace(/"/g, '""')}"`,
         `"${b.department_name.replace(/"/g, '""')}"`,
@@ -130,7 +132,7 @@ export function AllBookings() {
               className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Institutions</option>
-              {institutions.map(inst => (
+              {institutions?.map(inst => (
                 <option key={inst.id} value={inst.id}>{inst.name}</option>
               ))}
             </select>
@@ -183,7 +185,7 @@ export function AllBookings() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredBookings.map((booking) => (
+              {filteredBookings?.map((booking) => (
                 <tr key={booking.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">{booking.event_title}</div>

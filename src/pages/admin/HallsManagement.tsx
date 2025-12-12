@@ -262,7 +262,7 @@ export function HallsManagement() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredHalls.map((hall) => (
+            {filteredHalls?.map((hall) => (
               <div
                 key={hall.id}
                 className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${!hall.is_active ? 'opacity-60' : ''}`}
@@ -343,8 +343,8 @@ export function HallsManagement() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredInstitutions.map(inst => {
-          const count = halls.filter(h => h.institution_id === inst.id).length;
+        {filteredInstitutions?.map(inst => {
+          const count = halls?.filter(h => h.institution_id === inst.id).length || 0;
           return (
             <div
               key={inst.id}

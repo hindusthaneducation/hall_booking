@@ -181,7 +181,7 @@ export function DepartmentsManagement() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredDepts.map((item) => (
+                            {filteredDepts?.map((item) => (
                                 <tr key={item.id}>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{item.name}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-600">{item.short_name}</div></td>
@@ -235,8 +235,8 @@ export function DepartmentsManagement() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredInstitutions.map(inst => {
-                    const deptCount = departments.filter(d => d.institution_id === inst.id).length;
+                {filteredInstitutions?.map(inst => {
+                    const count = departments?.filter(d => d.institution_id === inst.id).length || 0;
 
                     return (
                         <div
@@ -254,7 +254,7 @@ export function DepartmentsManagement() {
                             <h3 className="text-lg font-semibold text-brand-text mb-1">{inst.name}</h3>
                             <p className="text-sm text-gray-500 mb-4">{inst.short_name}</p>
                             <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                {deptCount} Departments
+                                {count} Departments
                             </div>
                         </div>
                     );
@@ -297,14 +297,11 @@ function renderForm(showForm: boolean, editingItem: any, formData: any, setFormD
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
                         <select
-                            value={formData.institution_id}
-                            onChange={(e) => setFormData({ ...formData, institution_id: e.target.value })}
-                            required
-                            disabled={!!lockedInstId}
-                            className={`w - full px - 3 py - 2 border rounded - md ${lockedInstId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''} `}
+                            value={selectedInstId || ''}
+                            onChange={(e) => setSelectedInstId(e.target.value)}
+                            className="w-full px-3 py-2 border border-brand-border rounded-md"
                         >
-                            <option value="">Select Institution</option>
-                            {institutions.map(inst => (
+                            {institutions?.map(inst => (
                                 <option key={inst.id} value={inst.id}>{inst.name}</option>
                             ))}
                         </select>

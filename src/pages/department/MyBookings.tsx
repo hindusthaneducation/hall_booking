@@ -128,7 +128,7 @@ export function MyBookings() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredBookings.map((booking) => {
+          {filteredBookings?.map((booking) => {
             const config = statusConfig[booking.status];
             const StatusIcon = config.icon;
             return (

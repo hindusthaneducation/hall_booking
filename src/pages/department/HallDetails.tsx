@@ -289,7 +289,7 @@ export function HallDetails() {
             </div>
 
             <div className="space-y-3 mb-6">
-              {selectedDayBookings.map(b => (
+              {selectedDayBookings?.map(b => (
                 <div
                   key={b.id}
                   onClick={() => {
