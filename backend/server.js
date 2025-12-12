@@ -802,7 +802,7 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
                 bookingsQuery += ' WHERE 1=0';
             }
         }
-        bookingsQuery += ' ORDER BY b.booking_date DESC LIMIT 5';
+        bookingsQuery += ' ORDER BY b.booking_date DESC LIMIT 10';
         const [recentBookings] = await pool.query(bookingsQuery, bookingsParams);
 
         res.json({ stats, recentBookings });

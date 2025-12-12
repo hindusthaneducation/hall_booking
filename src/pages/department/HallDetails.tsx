@@ -213,18 +213,22 @@ export function HallDetails() {
             <div className="bg-brand-card p-6 rounded-lg shadow-sm border border-gray-200">
               <h2 className="text-lg font-semibold text-brand-text mb-4">Amenities</h2>
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center text-gray-700">
-                  <Building2 className="w-5 h-5 mr-3 text-brand-primary" />
-                  <span>{hall.is_ac ? 'AC Hall' : 'Non-AC Hall'}</span>
-                </div>
+                {hall.is_ac && (
+                  <div className="flex items-center text-gray-700">
+                    <Building2 className="w-5 h-5 mr-3 text-brand-primary" />
+                    <span>AC Hall</span>
+                  </div>
+                )}
                 <div className="flex items-center text-gray-700">
                   <Users className="w-5 h-5 mr-3 text-brand-primary" />
                   <span>{hall.seating_capacity} Seating</span>
                 </div>
-                <div className="flex items-center text-gray-700">
-                  <Volume2 className="w-5 h-5 mr-3 text-brand-primary" />
-                  <span>{hall.has_sound_system ? 'Sound System' : 'No Sound System'}</span>
-                </div>
+                {hall.has_sound_system && (
+                  <div className="flex items-center text-gray-700">
+                    <Volume2 className="w-5 h-5 mr-3 text-brand-primary" />
+                    <span>Sound System</span>
+                  </div>
+                )}
                 {hall.stage_size && (
                   <div className="flex items-center text-gray-700">
                     <Maximize className="w-5 h-5 mr-3 text-brand-primary" />

@@ -101,13 +101,8 @@ export function Settings() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-8">
-            {/* Profile Section */}
-            <div>
-                <div className="mb-6">
-                    <h1 className="text-3xl font-semibold text-gray-900 mb-2">Account Settings</h1>
-                    <p className="text-gray-600">Manage your profile and security preferences</p>
-                </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Profile Section */}
                 <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200">
                     <div className="p-6 border-b border-gray-200">
                         <h2 className="text-xl font-semibold text-brand-text flex items-center">
@@ -156,64 +151,64 @@ export function Settings() {
                         </div>
                     </form>
                 </div>
-            </div>
 
-            {/* Password Change Section */}
-            <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200">
-                <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-brand-text flex items-center">
-                        <Lock className="w-5 h-5 mr-2 text-brand-primary" />
-                        Change Password
-                    </h2>
+                {/* Password Change Section */}
+                <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200">
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-semibold text-brand-text flex items-center">
+                            <Lock className="w-5 h-5 mr-2 text-brand-primary" />
+                            Change Password
+                        </h2>
+                    </div>
+
+                    <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                            <input
+                                type="password"
+                                value={passwords.old_password}
+                                onChange={(e) => setPasswords({ ...passwords, old_password: e.target.value })}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                            <input
+                                type="password"
+                                value={passwords.new_password}
+                                onChange={(e) => setPasswords({ ...passwords, new_password: e.target.value })}
+                                required
+                                minLength={6}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                            <input
+                                type="password"
+                                value={passwords.confirm_password}
+                                onChange={(e) => setPasswords({ ...passwords, confirm_password: e.target.value })}
+                                required
+                                minLength={6}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                            />
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="flex items-center px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition-colors disabled:opacity-50"
+                            >
+                                <Save className="w-4 h-4 mr-2" />
+                                {loading ? 'Updating...' : 'Update Password'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                        <input
-                            type="password"
-                            value={passwords.old_password}
-                            onChange={(e) => setPasswords({ ...passwords, old_password: e.target.value })}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                        <input
-                            type="password"
-                            value={passwords.new_password}
-                            onChange={(e) => setPasswords({ ...passwords, new_password: e.target.value })}
-                            required
-                            minLength={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-                        <input
-                            type="password"
-                            value={passwords.confirm_password}
-                            onChange={(e) => setPasswords({ ...passwords, confirm_password: e.target.value })}
-                            required
-                            minLength={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-                        />
-                    </div>
-
-                    <div className="flex justify-end pt-2">
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="flex items-center px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition-colors disabled:opacity-50"
-                        >
-                            <Save className="w-4 h-4 mr-2" />
-                            {loading ? 'Updating...' : 'Update Password'}
-                        </button>
-                    </div>
-                </form>
             </div>
 
             {/* System Control Section (Super Admin Only) */}

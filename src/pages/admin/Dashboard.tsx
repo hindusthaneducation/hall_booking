@@ -116,10 +116,10 @@ export function AdminDashboard() {
                                 {recentBookings.length} Total
                             </span>
                         </div>
-                        <div className="divide-y divide-gray-100">
+                        <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto custom-scrollbar">
                             {recentBookings.length > 0 ? (
                                 <>
-                                    {recentBookings?.slice(0, visibleCount).map((booking) => {
+                                    {recentBookings?.map((booking) => {
                                         // Determine target link based on role and status
                                         // If admin/principal and pending, go to approvals or details
                                         // If user, go to booking details

@@ -170,8 +170,9 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker()}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
                 />
               </div>
               <div>
@@ -183,8 +184,9 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker()}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
                 />
               </div>
             </div>
