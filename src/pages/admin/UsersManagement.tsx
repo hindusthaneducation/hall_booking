@@ -51,6 +51,10 @@ export function UsersManagement() {
       if (institutionsRes.data) setInstitutions(institutionsRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+      // Ensure state is at least empty array on error
+      setUsers([]);
+      setDepartments([]);
+      setInstitutions([]);
     } finally {
       setLoading(false);
     }
@@ -248,7 +252,7 @@ export function UsersManagement() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
+              {filteredUsers?.map((user) => (
                 <tr key={user.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-brand-text">{user.full_name}</div>
@@ -336,8 +340,8 @@ export function UsersManagement() {
         )}
 
         {/* Institution Cards */}
-        {filteredInstitutions.map(inst => {
-          const count = users.filter(u => u.institution_id === inst.id && u.role !== 'super_admin').length;
+        {filteredInstitutions?.map(inst => {
+          const count = users?.filter(u => u.institution_id === inst.id && u.role !== 'super_admin').length || 0;
           return (
             <div
               key={inst.id}

@@ -33,8 +33,10 @@ export function AdminDashboard() {
         async function fetchDashboardData() {
             try {
                 const { data } = await api.get<{ stats: any, recentBookings: any[] }>('/dashboard/stats');
-                setStats(data.stats);
-                setRecentBookings(data.recentBookings);
+                if (data) {
+                    setStats(data.stats || { colleges: 0, halls: 0, hods: 0, principals: 0 });
+                    setRecentBookings(data.recentBookings || []);
+                }
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
             } finally {
@@ -117,7 +119,7 @@ export function AdminDashboard() {
                         <div className="divide-y divide-gray-100">
                             {recentBookings.length > 0 ? (
                                 <>
-                                    {recentBookings.slice(0, visibleCount).map((booking) => {
+                                    {recentBookings?.slice(0, visibleCount).map((booking) => {
                                         // Determine target link based on role and status
                                         // If admin/principal and pending, go to approvals or details
                                         // If user, go to booking details
