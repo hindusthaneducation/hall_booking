@@ -301,7 +301,7 @@ function renderForm(showForm: boolean, editingItem: any, formData: any, setFormD
                             onChange={(e) => setFormData({ ...formData, institution_id: e.target.value })}
                             required
                             disabled={!!lockedInstId}
-                            className={`w - full px - 3 py - 2 border rounded - md ${lockedInstId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''} `}
+                            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${lockedInstId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'border-gray-300'}`}
                         >
                             <option value="">Select Institution</option>
                             {institutions.map(inst => (

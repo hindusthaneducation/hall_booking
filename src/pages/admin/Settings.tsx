@@ -100,7 +100,7 @@ export function Settings() {
     if (!profile) return null;
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8">
+        <div className="w-full max-w-7xl mx-auto space-y-8 px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Profile Section */}
                 <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200">
@@ -201,7 +201,7 @@ export function Settings() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex items-center px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition-colors disabled:opacity-50"
+                                className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-secondary transition-colors disabled:opacity-50"
                             >
                                 <Save className="w-4 h-4 mr-2" />
                                 {loading ? 'Updating...' : 'Update Password'}
