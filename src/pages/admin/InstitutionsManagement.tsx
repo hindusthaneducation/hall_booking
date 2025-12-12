@@ -119,7 +119,7 @@ export function InstitutionsManagement() {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {institutions?.map((item) => (
+                        {institutions.map((item) => (
                             <tr key={item.id}>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <ImageWithFallback

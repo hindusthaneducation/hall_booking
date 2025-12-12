@@ -197,7 +197,7 @@ export function Register() {
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                                         >
                                             <option value="">Select a Department</option>
-                                            {departments?.map((dept) => (
+                                            {departments.map((dept) => (
                                                 <option key={dept.id} value={dept.id}>
                                                     {dept.name}
                                                 </option>

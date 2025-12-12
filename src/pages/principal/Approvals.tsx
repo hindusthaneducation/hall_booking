@@ -107,7 +107,7 @@ export function Approvals() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bookings?.map((booking) => (
+          {bookings.map((booking) => (
             <div key={booking.id} className="bg-brand-card rounded-lg border border-gray-200 overflow-hidden shadow-sm flex flex-col">
               <div className="p-5 flex-grow">
                 <div className="flex items-start justify-between mb-4">

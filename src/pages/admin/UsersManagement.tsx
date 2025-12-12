@@ -434,7 +434,7 @@ function renderForm(showForm: boolean, editingUser: any, formData: any, setFormD
               className={`w-full px-3 py-2 border rounded-md ${lockedInstId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
             >
               <option value="">Select Institution</option>
-              {institutions?.map(inst => (
+              {institutions.map(inst => (
                 <option key={inst.id} value={inst.id}>{inst.name}</option>
               ))}
             </select>
@@ -446,8 +446,8 @@ function renderForm(showForm: boolean, editingUser: any, formData: any, setFormD
               <select value={formData.department_id} onChange={(e) => setFormData({ ...formData, department_id: e.target.value })} required className="w-full px-3 py-2 border rounded-md">
                 <option value="">Select Department</option>
                 {departments
-                  ?.filter(d => !formData.institution_id || d.institution_id === formData.institution_id)
-                  ?.map((dept) => (
+                  .filter(d => !formData.institution_id || d.institution_id === formData.institution_id)
+                  .map((dept) => (
                     <option key={dept.id} value={dept.id}>{dept.name}</option>
                   ))}
               </select>

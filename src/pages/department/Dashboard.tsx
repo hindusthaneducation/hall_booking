@@ -164,7 +164,7 @@ export function DepartmentDashboard() {
             <p className="text-gray-600">No bookings yet</p>
           ) : (
             <div className="space-y-3">
-              {bookings?.map((booking) => {
+              {bookings.map((booking) => {
                 const config = statusConfig[booking.status];
                 const StatusIcon = config.icon;
                 return (
