@@ -149,7 +149,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
 
         <nav className="p-4 space-y-1 flex-1 overflow-y-auto min-h-0">
-          {currentNavItems.map((item) => {
+          {currentNavItems?.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (

@@ -193,7 +193,7 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
               <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-md">
                 <h4 className="text-sm font-medium text-orange-800 mb-2">Occupied Slots:</h4>
                 <ul className="space-y-1">
-                  {occupiedSlots.map(slot => (
+                  {occupiedSlots?.map(slot => (
                     <li key={slot.id} className="text-sm text-orange-700 flex items-center">
                       <Clock className="w-3 h-3 mr-2" />
                       <span className="font-medium mr-2">{slot.start_time} - {slot.end_time}</span>
