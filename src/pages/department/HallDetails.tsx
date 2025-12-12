@@ -80,7 +80,8 @@ export function HallDetails() {
     // Optimization: Backend could support date range params, but fetching all is fine for MVP
     // We fetch all bookings and filter client side for the month/range
     // Optimization: Backend could support date range params, but fetching all is fine for MVP
-    const { data: bookings } = await api.get<Booking[]>('/bookings?view=all');
+    // We fetch bookings for this specific HALL to correct the calendar view
+    const { data: bookings } = await api.get<Booking[]>(`/bookings?hall_id=${id}`);
 
     const bookingMap = new Map<string, Booking[]>();
 

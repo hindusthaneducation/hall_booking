@@ -553,12 +553,16 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
             query += ' WHERE d.institution_id = ?';
             params.push(req.user.institution_id);
         } else {
-            // Department User sees only their own bookings... 
-            // UNLESS they are checking availability (hall_id + date provided)
-            if (req.query.hall_id && req.query.date) {
-                // Allow checking availability for a specific hall/date
-                // We will append matching logic below
+            // Department User
+            // Logic:
+            // 1. If checking a specific Hall (hall_id) -> View ALL bookings for that hall (Public Calendar behavior)
+            // 2. If checking My Bookings (no filters) -> View ONLY my bookings
+
+            if (req.query.hall_id || req.query.date) {
+                // Public Calendar View: See usage for specific resource
+                // Do NOT restrict by user_id here.
             } else {
+                // Private View: See my own history
                 query += ' WHERE b.user_id = ?';
                 params.push(req.user.id);
             }
