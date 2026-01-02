@@ -97,7 +97,7 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
 
         setLoading(true);
         try {
-            const { error } = await api.delete(`/bookings/${booking.id}`, { data: { reason } });
+            const { error } = await api.delete(`/bookings/${booking.id}`, { reason });
             if (error) throw error;
             onClose();
             if (onUpdate) onUpdate();
