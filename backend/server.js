@@ -23,10 +23,8 @@ const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 const allowedOrigins = [
     frontendUrl,
     frontendUrl.replace(/\/$/, ''),
-    'http://hallbooking.hsoa.ac.in',
-    'https://hallbooking.hsoa.ac.in',
-    'http://localhost:5173',
-    'http://localhost:3000'
+    'https://hallbooking.hindusthan.net',
+    'http://hallbooking.hindusthan.net'
 ];
 app.use(cors({
     origin: allowedOrigins,
