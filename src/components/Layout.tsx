@@ -111,9 +111,13 @@ export function Layout({ children }: LayoutProps) {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center">
             {/* ... Logo logic ... */}
-            <ImageWithFallback src={(profile?.institution as any)?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+            {profile?.role === 'super_admin' ? (
+              <ImageWithFallback src={null} fallbackSrc={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+            ) : (
+              <ImageWithFallback src={(profile?.institution as any)?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-8 h-8 object-contain mr-2" />
+            )}
             <span className="font-semibold text-brand-text">
-              {(profile?.institution as any)?.short_name || 'Hall Booking'}
+              {profile?.role === 'super_admin' ? 'Hindusthan Admin' : ((profile?.institution as any)?.short_name || 'Hall Booking')}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -140,10 +144,16 @@ export function Layout({ children }: LayoutProps) {
       >
         <div className="p-6 border-b border-gray-200 shrink-0">
           <div className="flex items-center">
-            <ImageWithFallback src={(profile?.institution as any)?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-10 h-10 object-contain mr-3" />
+            {profile?.role === 'super_admin' ? (
+              <ImageWithFallback src={null} fallbackSrc={HindusthanLogo} alt="Logo" className="w-10 h-10 object-contain mr-3" />
+            ) : (
+              <ImageWithFallback src={(profile?.institution as any)?.logo_url} fallbackSrc={HindusthanLogo} alt="Logo" className="w-10 h-10 object-contain mr-3" />
+            )}
             <div>
               <h1 className="text-lg font-semibold text-brand-text leading-tight">
-                {(profile?.institution as any)?.name || (profile?.institution as any)?.short_name || 'Hall Booking'}
+                {profile?.role === 'super_admin'
+                  ? 'Hindusthan Educational Institutions'
+                  : (profile?.institution?.name || (profile?.institution as any)?.short_name || 'Hall Booking')}
               </h1>
               <p className="text-xs text-gray-500 capitalize">
                 {profile?.role === 'department_user'
