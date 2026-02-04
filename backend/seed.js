@@ -122,6 +122,27 @@ export async function seed() {
                 role: 'department_user',
                 dept_short: 'CSE',
                 institution_id: demoInstId
+            },
+            {
+                email: 'designing@hindusthan.net',
+                full_name: 'Designing Team',
+                role: 'designing_team',
+                dept_short: 'ADMIN',
+                institution_id: demoInstId
+            },
+            {
+                email: 'photography@hindusthan.net',
+                full_name: 'Photography Team',
+                role: 'photography_team',
+                dept_short: 'ADMIN',
+                institution_id: demoInstId
+            },
+            {
+                email: 'press@hindusthan.net',
+                full_name: 'Press Release Team',
+                role: 'press_release_team',
+                dept_short: 'ADMIN',
+                institution_id: demoInstId
             }
         ];
 

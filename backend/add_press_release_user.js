@@ -21,7 +21,7 @@ const createPressUser = async () => {
 
     try {
         const email = 'press@hindusthan.net';
-        const password = 'password123';
+        const password = 'hicas';
         const hashedPassword = await bcrypt.hash(password, 10);
         const fullName = 'Press Release Team';
         const role = 'press_release_team';
