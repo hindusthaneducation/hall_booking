@@ -287,9 +287,15 @@ app.post('/api/auth/login', async (req, res) => {
                     department_id: user.department_id,
                     institution_id: user.institution_id,
                     institution: {
-                        name: user.institution_name,
-                        short_name: user.institution_short_name,
-                        logo_url: user.institution_logo_url
+                        name: ['super_admin', 'designing_team', 'photography_team', 'press_release_team'].includes(user.role)
+                            ? 'Hindusthan Educational Institutions'
+                            : user.institution_name,
+                        short_name: ['super_admin', 'designing_team', 'photography_team', 'press_release_team'].includes(user.role)
+                            ? 'Hindusthan Institutions'
+                            : user.institution_short_name,
+                        logo_url: ['super_admin', 'designing_team', 'photography_team', 'press_release_team'].includes(user.role)
+                            ? null // Frontend uses fallback to HindusthanLogo
+                            : user.institution_logo_url
                     },
                     department: {
                         name: user.department_name,
@@ -339,7 +345,12 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
                 name: user.institution_name,
                 short_name: user.institution_short_name,
                 logo_url: user.institution_logo_url
-            } : null
+            } : (['super_admin', 'designing_team', 'photography_team', 'press_release_team'].includes(user.role) ? {
+                id: 'hindusthan-educational-institutions',
+                name: 'Hindusthan Educational Institutions',
+                short_name: 'Hindusthan Institutions',
+                logo_url: null
+            } : null)
         };
 
         res.json({ user: profile });
@@ -424,16 +435,23 @@ app.get('/api/users', authenticateToken, async (req, res) => {
         `);
 
         // Format for frontend
-        const formattedUsers = users.map(u => ({
-            id: u.id,
-            email: u.email,
-            full_name: u.full_name,
-            role: u.role,
-            department_id: u.department_id,
-            institution_id: u.institution_id,
-            created_at: u.created_at,
-            department: u.dept_id ? { id: u.dept_id, name: u.dept_name, short_name: u.dept_short_name } : null
-        }));
+        const formattedUsers = users.map(u => {
+            const isTeamSystem = ['super_admin', 'designing_team', 'photography_team', 'press_release_team'].includes(u.role);
+            return {
+                id: u.id,
+                email: u.email,
+                full_name: u.full_name,
+                role: u.role,
+                department_id: u.department_id,
+                institution_id: u.institution_id,
+                created_at: u.created_at,
+                department: isTeamSystem ? {
+                    id: 'hindusthan',
+                    name: 'Hindusthan Educational Institutions',
+                    short_name: 'Hindusthan Educational Institutions'
+                } : (u.dept_id ? { id: u.dept_id, name: u.dept_name, short_name: u.dept_short_name } : null)
+            };
+        });
 
         res.json(formattedUsers);
     } catch (error) {
