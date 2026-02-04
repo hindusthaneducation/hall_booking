@@ -150,6 +150,11 @@ export async function initDB() {
                 { name: 'event_coordinator_name', type: 'VARCHAR(255)' },
                 { name: 'event_convenor_details', type: 'TEXT' },
                 { name: 'in_house_guest', type: 'TEXT' },
+                { name: 'is_ac', type: 'BOOLEAN DEFAULT FALSE' },
+                { name: 'is_fan', type: 'BOOLEAN DEFAULT FALSE' },
+                { name: 'is_photography', type: 'BOOLEAN DEFAULT FALSE' },
+                { name: 'work_status', type: 'ENUM("pending", "completed") DEFAULT "pending"' },
+                { name: 'final_file_url', type: 'VARCHAR(1000)' },
                 { name: 'files_urls', type: 'JSON' }
             ];
 
