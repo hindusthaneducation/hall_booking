@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api, API_BASE } from '../../lib/api';
+import { api } from '../../lib/api';
 import { FileText, ExternalLink, Download, Image as ImageIcon } from 'lucide-react';
 import { showToast } from '../../components/Toast.tsx';
 
@@ -91,7 +91,7 @@ const PressReleaseTeamDashboard = () => {
                                         <div className="space-y-3">
                                             {req.english_writeup ? (
                                                 <a
-                                                    href={`${API_BASE}${req.english_writeup}`}
+                                                    href={`http://localhost:5001${req.english_writeup}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition group"
@@ -111,7 +111,7 @@ const PressReleaseTeamDashboard = () => {
 
                                             {req.tamil_writeup && (
                                                 <a
-                                                    href={`${API_BASE}${req.tamil_writeup}`}
+                                                    href={`http://localhost:5001${req.tamil_writeup}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition group"
@@ -138,13 +138,13 @@ const PressReleaseTeamDashboard = () => {
                                             {parsePhotos(req.photos).map((photo: string, index: number) => (
                                                 <a
                                                     key={index}
-                                                    href={`${API_BASE}${photo}`}
+                                                    href={`http://localhost:5001${photo}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="group relative aspect-square rounded-lg overflow-hidden border border-gray-200"
                                                 >
                                                     <img
-                                                        src={`${API_BASE}${photo}`}
+                                                        src={`http://localhost:5001${photo}`}
                                                         alt={`Event ${index + 1}`}
                                                         className="w-full h-full object-cover transition duration-300 group-hover:scale-110"
                                                     />

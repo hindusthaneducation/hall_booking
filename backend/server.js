@@ -207,9 +207,7 @@ app.get('/api/admin/fix-schema', async (req, res) => {
 // --- Auth Routes ---
 
 app.post('/api/auth/register', async (req, res) => {
-    let { email, password, full_name, role, department_id, institution_id } = req.body;
-    email = email?.trim();
-    password = password?.trim();
+    const { email, password, full_name, role, department_id, institution_id } = req.body;
     try {
         // Enforce Registration Control (unless it's an authenticated Admin/Principal creating a user)
         let isAdminOverride = false;
@@ -259,9 +257,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/login', async (req, res) => {
-    let { email, password } = req.body;
-    email = email?.trim();
-    password = password?.trim();
+    const { email, password } = req.body;
     try {
         const [users] = await pool.query(`
             SELECT u.*, i.name as institution_name, i.short_name as institution_short_name, i.logo_url as institution_logo_url, d.name as department_name, d.short_name as department_short_name

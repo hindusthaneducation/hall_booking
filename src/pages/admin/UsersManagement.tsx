@@ -337,13 +337,8 @@ export function UsersManagement() {
             </div>
             <h3 className="text-lg font-semibold text-brand-text mb-1">Hindusthan Educational Institutions</h3>
             <p className="text-sm text-gray-500">Super Admins / System</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <span className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-medium rounded-full">
-                {systemUsersCount} Total
-              </span>
-              <span className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] font-medium rounded-full">
-                {users.filter(u => u.role === 'super_admin').length} Admins
-              </span>
+            <div className="mt-4 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+              {systemUsersCount} Users
             </div>
           </div>
         )}
@@ -366,15 +361,8 @@ export function UsersManagement() {
               </div>
               <h3 className="text-lg font-semibold text-brand-text mb-1">{inst.name}</h3>
               <p className="text-sm text-gray-500">{inst.short_name}</p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-medium rounded-full">
-                  {count} Total
-                </span>
-                {users.filter(u => u.institution_id === inst.id && u.role === 'principal').length > 0 && (
-                  <span className="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-medium rounded-full">
-                    {users.filter(u => u.institution_id === inst.id && u.role === 'principal').length} Principal
-                  </span>
-                )}
+              <div className="mt-4 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                {count} Users
               </div>
             </div>
           )

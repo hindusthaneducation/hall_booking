@@ -325,7 +325,7 @@ export function AllBookings() {
                             {booking.final_file_url && (
                               <span className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1" onClick={(e) => {
                                 e.stopPropagation();
-                                window.open(booking.final_file_url?.startsWith('http') ? booking.final_file_url : `${import.meta.env.VITE_API_BASE_URL}${booking.final_file_url}`, '_blank');
+                                window.open(booking.final_file_url?.startsWith('http') ? booking.final_file_url : `http://localhost:5001/api${booking.final_file_url}`, '_blank');
                               }}>
                                 <Download className="w-3 h-3" /> Asset
                               </span>

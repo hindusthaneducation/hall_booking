@@ -1,6 +1,6 @@
-export const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
-export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5001';
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 // In production, we should avoid localhost default if possible, or ensure env var is set.
+// For now, keeping fallback is safe for local dev, but ensuring VITE_API_BASE_URL is used.
 
 interface RequestOptions extends RequestInit {
     token?: string;
@@ -35,19 +35,10 @@ class ApiClient {
                 headers,
             });
 
-            const contentType = response.headers.get('content-type');
-            let data: any;
-
-            if (contentType && contentType.includes('application/json')) {
-                data = await response.json();
-            } else {
-                const text = await response.text();
-                console.error('Non-JSON response received:', text.substring(0, 200));
-                throw new Error(`Server returned non-JSON response (${response.status} ${response.statusText}). This usually means a backend error or incorrect API URL.`);
-            }
+            const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data?.error || 'API request failed');
+                throw new Error(data.error || 'API request failed');
             }
 
             return { data, error: null };

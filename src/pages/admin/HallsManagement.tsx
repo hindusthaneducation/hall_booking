@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api, API_URL, API_BASE } from '../../lib/api';
+import { api } from '../../lib/api';
 import { showToast } from '../../components/Toast';
 import { Building2, Plus, Edit, X, Upload, ArrowLeft, Search, GraduationCap, Users } from 'lucide-react';
 import type { Database } from '../../types/database';
@@ -133,7 +133,7 @@ export function HallsManagement() {
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || API_URL;
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
       const response = await fetch(`${baseUrl}/upload`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -274,7 +274,7 @@ export function HallsManagement() {
               >
                 <div className="aspect-video bg-gray-200 overflow-hidden">
                   <img
-                    src={hall.image_url?.startsWith('http') ? hall.image_url : `${API_BASE}${hall.image_url}`}
+                    src={hall.image_url?.startsWith('http') ? hall.image_url : `${import.meta.env.VITE_API_BASE_URL}${hall.image_url}`}
                     alt={hall.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -459,7 +459,7 @@ function renderForm(showForm: boolean, editingHall: any, formData: any, setFormD
               <div className="flex-shrink-0 h-32 w-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                 {formData.image_url ? (
                   <img
-                    src={formData.image_url.startsWith('http') ? formData.image_url : `${API_BASE}${formData.image_url}`}
+                    src={formData.image_url.startsWith('http') ? formData.image_url : `${import.meta.env.VITE_API_BASE_URL}${formData.image_url}`}
                     alt="Preview"
                     className="h-full w-full object-cover"
                   />
