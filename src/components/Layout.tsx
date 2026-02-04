@@ -15,6 +15,7 @@ import {
   School,
   Layers,
   Palette,
+  FileText,
 } from 'lucide-react';
 import HindusthanLogo from '../images/hindusthan_logo.webp';
 import { ImageWithFallback } from './ImageWithFallback';
@@ -65,6 +66,7 @@ export function Layout({ children }: LayoutProps) {
       { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/halls', icon: Building2, label: 'Browse Halls' },
       { path: '/my-bookings', icon: Calendar, label: 'My Bookings' },
+      { path: '/press-release', icon: FileText, label: 'Press Release' },
       { path: '/settings', icon: Settings, label: 'Settings' },
     ],
     principal: [
@@ -82,7 +84,21 @@ export function Layout({ children }: LayoutProps) {
       { path: '/halls-management', icon: Building2, label: 'Manage Halls' },
       { path: '/halls', icon: Calendar, label: 'Book Hall' },
       { path: '/users-management', icon: Users, label: 'Manage Users' },
+      { path: '/admin/press-releases', icon: FileText, label: 'Press Release Requests' }, // New Link
       { path: '/all-bookings', icon: Calendar, label: 'All Bookings' },
+      { path: '/settings', icon: Settings, label: 'Settings' },
+    ],
+    designing_team: [
+      { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/settings', icon: Settings, label: 'Settings' },
+    ],
+    photography_team: [
+      { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/settings', icon: Settings, label: 'Settings' },
+    ],
+    press_release_team: [ // New Role
+      { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/team/press-releases', icon: FileText, label: 'Approved Releases' },
       { path: '/settings', icon: Settings, label: 'Settings' },
     ],
   };

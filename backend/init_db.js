@@ -4,10 +4,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 export async function initDB() {
     console.log('🔄 Initializing Database...');
@@ -123,6 +123,7 @@ export async function initDB() {
                 }
             }
 
+
             console.log('⏳ Checking for schema updates (end_time)...');
             try {
                 await migrationPool.query('ALTER TABLE bookings ADD COLUMN end_time TIME');
@@ -135,8 +136,62 @@ export async function initDB() {
                 }
             }
 
+            // New Columns Migration
+            const newColumns = [
+                { name: 'media_coordinator_name', type: 'VARCHAR(255)' },
+                { name: 'contact_no', type: 'VARCHAR(50)' },
+                { name: 'chief_guest_name', type: 'VARCHAR(255)' },
+                { name: 'chief_guest_designation', type: 'VARCHAR(255)' },
+                { name: 'chief_guest_organization', type: 'VARCHAR(255)' },
+                { name: 'chief_guest_photo_url', type: 'VARCHAR(1000)' },
+                { name: 'event_partner_organization', type: 'VARCHAR(255)' },
+                { name: 'event_partner_details', type: 'TEXT' },
+                { name: 'event_partner_logo_url', type: 'VARCHAR(1000)' },
+                { name: 'event_coordinator_name', type: 'VARCHAR(255)' },
+                { name: 'event_convenor_details', type: 'TEXT' },
+                { name: 'in_house_guest', type: 'TEXT' },
+                { name: 'files_urls', type: 'JSON' }
+            ];
+
+            for (const col of newColumns) {
+                console.log(`⏳ Checking for ${col.name}...`);
+                try {
+                    await migrationPool.query(`ALTER TABLE bookings ADD COLUMN ${col.name} ${col.type}`);
+                    console.log(`✅ ${col.name} column added.`);
+                } catch (e) {
+                    if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                        console.log(`✅ ${col.name} already exists.`);
+                    } else {
+                        console.error(`❌ Failed to add ${col.name}:`, e.message);
+                        // Don't throw, try next
+                    }
+                }
+            }
+
+
         } catch (migErr) {
             console.warn('⚠️ Schema migration warning:', migErr.message);
+        }
+
+        try {
+            console.log('⏳ Checking for photography_drive_link in bookings...');
+            await migrationPool.query('ALTER TABLE bookings ADD COLUMN photography_drive_link VARCHAR(1000)');
+            console.log('✅ photography_drive_link column added.');
+        } catch (e) {
+            if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                console.log('✅ photography_drive_link already exists.');
+            } else {
+                console.warn('⚠️ Could not add photography_drive_link:', e.message);
+            }
+        }
+
+        try {
+            console.log('⏳ Updating role ENUM for users to include photography_team...');
+            // Note: We include designing_team from previous context, and add photography_team
+            await migrationPool.query("ALTER TABLE users MODIFY COLUMN role ENUM('department_user', 'principal', 'super_admin', 'designing_team', 'photography_team', 'press_release_team') NOT NULL DEFAULT 'department_user'");
+            console.log('✅ Role ENUM updated.');
+        } catch (e) {
+            console.warn('⚠️ Could not update role ENUM:', e.message);
         }
 
 
@@ -162,23 +217,81 @@ export async function initDB() {
                 console.log('✅ Default registration_active setting inserted.');
             }
 
-            console.log('⏳ Checking for theme_preference in users...');
-            await migrationPool.query("ALTER TABLE users ADD COLUMN theme_preference VARCHAR(50) DEFAULT 'hindusthan'");
-            console.log('✅ theme_preference column added.');
-        } catch (migErr2) {
-            // Ignore Duplicate Column errors (ER_DUP_FIELDNAME / 1060)
-            if (migErr2.code === 'ER_DUP_FIELDNAME' || migErr2.errno === 1060) {
-                console.log('✅ theme_preference already exists.');
-            } else {
-                console.warn('⚠️ Additional migration warning:', migErr2.message);
+            try {
+                console.log('⏳ Checking for theme_preference in users...');
+                await migrationPool.query("ALTER TABLE users ADD COLUMN theme_preference VARCHAR(50) DEFAULT 'hindusthan'");
+                console.log('✅ theme_preference column added.');
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                    console.log('✅ theme_preference already exists.');
+                } else {
+                    console.warn('⚠️ Could not add theme_preference:', e.message);
+                }
             }
+
+            try {
+                console.log('⏳ Checking for press_releases table...');
+                // Create press_releases table
+                await migrationPool.query(`
+                    CREATE TABLE IF NOT EXISTS press_releases (
+                        id CHAR(36) PRIMARY KEY,
+                        user_id CHAR(36) NOT NULL,
+                        department_id CHAR(36) NOT NULL,
+                        coordinator_name VARCHAR(255) NOT NULL,
+                        event_title VARCHAR(255) NOT NULL,
+                        event_date DATE NOT NULL,
+                        english_writeup TEXT,
+                        tamil_writeup TEXT,
+                        photo_description TEXT,
+                        photos JSON,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id),
+                        FOREIGN KEY (department_id) REFERENCES departments(id)
+                    )
+                `);
+                console.log('✅ press_releases table checked/created.');
+            } catch (e) {
+                console.warn('⚠️ Could not create press_releases table:', e.message);
+            }
+
+            console.log('✅ press_releases table checked/created.');
+
+            console.log('⏳ Checking for booking_id in press_releases...');
+            try {
+                await migrationPool.query("ALTER TABLE press_releases ADD COLUMN booking_id CHAR(36)");
+                await migrationPool.query("ALTER TABLE press_releases ADD CONSTRAINT fk_pr_booking FOREIGN KEY (booking_id) REFERENCES bookings(id)");
+                console.log('✅ booking_id column added to press_releases.');
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                    console.log('✅ booking_id already exists in press_releases.');
+                } else {
+                    console.log('⚠️ Could not add booking_id (might already exist or foreign key issue):', e.message);
+                }
+            }
+
+            console.log('⏳ Checking for status in press_releases...');
+            try {
+                await migrationPool.query("ALTER TABLE press_releases ADD COLUMN status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending'");
+                console.log('✅ status column added to press_releases.');
+            } catch (e) {
+                if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                    console.log('✅ status column already exists in press_releases.');
+                } else {
+                    console.log('⚠️ Could not add status column:', e.message);
+                }
+            }
+
+
+
+            await migrationPool.end();
+
+            console.log('🎉 Database Initialization Complete.');
+        } catch (error) {
+            console.error('❌ Init Error:', error);
+            throw error;
         }
-
-        await migrationPool.end();
-
-        console.log('🎉 Database Initialization Complete.');
-    } catch (error) {
-        console.error('❌ Init Error:', error);
-        throw error;
+    } catch (outerError) {
+        console.error('❌ Outer Init Error:', outerError);
+        throw outerError;
     }
 }

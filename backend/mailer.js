@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
     secure: true, // use SSL
     auth: {
         user: sanitize(process.env.MAIL_USER),
-        pass: sanitize(process.env.MAIL_PASS)
+        pass: sanitize(process.env.MAIL_PASS).replace(/\s+/g, '')
     },
     // Debug settings to see SMTP traffic in logs
     logger: true,

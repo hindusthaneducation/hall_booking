@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { showToast } from '../../components/Toast';
 import { Plus, Edit, Trash2, X, Search, ArrowLeft, School, FolderTree, GraduationCap, Users } from 'lucide-react';
 import type { Department, Institution, User } from '../../lib/types';
 
@@ -58,10 +59,12 @@ export function DepartmentsManagement() {
                 const { error } = await api.post('/departments', formData);
                 if (error) throw error;
             }
+            showToast.success(editingItem ? 'Department updated' : 'Department created');
             resetForm();
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving department:', error);
+            showToast.error(error.message || 'Failed to save department');
         }
     };
 
@@ -70,9 +73,10 @@ export function DepartmentsManagement() {
         try {
             const { error } = await api.delete(`/departments/${id}`);
             if (error) throw error;
+            showToast.success('Department deleted');
             fetchData();
-        } catch (error) {
-            alert('Failed to delete department');
+        } catch (error: any) {
+            showToast.error(error.message || 'Failed to delete department');
         }
     };
 

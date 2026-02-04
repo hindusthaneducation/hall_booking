@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { showToast } from '../components/Toast';
 import HindusthanLogo from '../images/hindusthan_logo.webp';
 
 export function Login() {
@@ -20,11 +21,15 @@ export function Login() {
       const { error } = await signIn(email, password);
       if (error) {
         setError(error.message);
+        showToast.error(error.message);
       } else {
+        showToast.success('Logged in successfully');
         navigate('/');
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
+    } catch (err: any) {
+      const msg = err.message || 'An unexpected error occurred';
+      setError(msg);
+      showToast.error(msg);
     } finally {
       setLoading(false);
     }

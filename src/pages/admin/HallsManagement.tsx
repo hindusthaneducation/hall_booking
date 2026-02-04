@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../../lib/api';
-import { Building2, Plus, Edit, Trash2, X, Upload, ArrowLeft, Search, GraduationCap, Users } from 'lucide-react';
+import { api, API_URL, API_BASE } from '../../lib/api';
+import { showToast } from '../../components/Toast';
+import { Building2, Plus, Edit, X, Upload, ArrowLeft, Search, GraduationCap, Users } from 'lucide-react';
 import type { Database } from '../../types/database';
 import type { Institution, User } from '../../lib/types';
 
@@ -88,11 +89,13 @@ export function HallsManagement() {
         const { error } = await api.post('/halls', payload);
         if (error) throw error;
       }
+
+      showToast.success(editingHall ? 'Hall updated' : 'Hall created');
       resetForm();
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving hall:', error);
-      alert('Failed to save hall');
+      showToast.error(error.message || 'Failed to save hall');
     }
   };
 
@@ -115,9 +118,10 @@ export function HallsManagement() {
     try {
       const { error } = await api.put(`/halls/${hall.id}`, { ...hall, is_active: !hall.is_active });
       if (error) throw error;
+      showToast.success(`Hall ${!hall.is_active ? 'activated' : 'deactivated'}`);
       fetchData();
-    } catch (error) {
-      alert('Failed to update hall status');
+    } catch (error: any) {
+      showToast.error(error.message || 'Failed to update hall status');
     }
   };
 
@@ -129,7 +133,7 @@ export function HallsManagement() {
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || API_URL;
       const response = await fetch(`${baseUrl}/upload`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -138,8 +142,9 @@ export function HallsManagement() {
       if (!response.ok) throw new Error('Upload failed');
       const data = await response.json();
       setFormData(prev => ({ ...prev, image_url: data.url }));
-    } catch (error) {
-      alert('Failed to upload image');
+      showToast.success('Image uploaded');
+    } catch (error: any) {
+      showToast.error(error.message || 'Failed to upload image');
     } finally {
       setUploading(false);
     }
@@ -269,7 +274,7 @@ export function HallsManagement() {
               >
                 <div className="aspect-video bg-gray-200 overflow-hidden">
                   <img
-                    src={hall.image_url?.startsWith('http') ? hall.image_url : `${import.meta.env.VITE_API_BASE_URL}${hall.image_url}`}
+                    src={hall.image_url?.startsWith('http') ? hall.image_url : `${API_BASE}${hall.image_url}`}
                     alt={hall.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -454,7 +459,7 @@ function renderForm(showForm: boolean, editingHall: any, formData: any, setFormD
               <div className="flex-shrink-0 h-32 w-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                 {formData.image_url ? (
                   <img
-                    src={formData.image_url.startsWith('http') ? formData.image_url : `${import.meta.env.VITE_API_BASE_URL}${formData.image_url}`}
+                    src={formData.image_url.startsWith('http') ? formData.image_url : `${API_BASE}${formData.image_url}`}
                     alt="Preview"
                     className="h-full w-full object-cover"
                   />

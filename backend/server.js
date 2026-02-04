@@ -12,6 +12,8 @@ import { fileURLToPath } from 'url';
 import { initDB } from './init_db.js';
 import { seed } from './seed.js';
 import { sendEmail, getBookingTemplate, verifyConnection } from './mailer.js';
+import cron from 'node-cron';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,6 +58,56 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
+
+// Auto-Deletion of Guest Images (Daily at Midnight)
+cron.schedule('0 0 * * *', async () => {
+    console.log('⏰ Running daily image cleanup...');
+    try {
+        const pool = mysql.createPool({
+            host: process.env.DB_HOST || 'localhost',
+            user: process.env.DB_USER || 'root',
+            password: process.env.DB_PASSWORD || '',
+            database: process.env.DB_NAME || 'hall_booking_system',
+            port: process.env.DB_PORT || 3306,
+            ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
+                ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
+                : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+        });
+
+        // Find bookings where event has passed (yesterday or earlier) and has guest photo
+        const [rows] = await pool.query(`
+            SELECT id, chief_guest_photo_url 
+            FROM bookings 
+            WHERE booking_date < CURDATE() 
+            AND chief_guest_photo_url IS NOT NULL
+        `);
+
+        if (rows.length > 0) {
+            console.log(`🗑️ Found ${rows.length} expired guest images to delete.`);
+            for (const row of rows) {
+                if (row.chief_guest_photo_url) {
+                    // Extract filename from URL (assuming /uploads/filename.ext or similar)
+                    const filename = path.basename(row.chief_guest_photo_url);
+                    const filePath = path.join(uploadDir, filename);
+
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                        console.log(`Deleted file: ${filePath}`);
+                    }
+
+                    // Update DB to nullify or set dummy? User said "add dummy images or notginh". 
+                    // "only delet and add dummy images or notginh" -> assume remove link or set to dummy.
+                    // Setting to NULL is safest/cleanest.
+                    await pool.query('UPDATE bookings SET chief_guest_photo_url = NULL WHERE id = ?', [row.id]);
+                }
+            }
+        }
+        await pool.end();
+    } catch (err) {
+        console.error('❌ Image cleanup error:', err);
+    }
+});
+
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
@@ -532,6 +584,13 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
             SELECT b.id, b.hall_id, b.department_id, b.user_id, DATE_FORMAT(b.booking_date, '%Y-%m-%d') as booking_date, 
                    b.event_title, b.event_description, b.event_time, b.status, b.rejection_reason,
                    b.start_time, b.end_time, 
+                   b.is_ac, b.is_fan, b.is_photography,
+                   b.media_coordinator_name, b.contact_no,
+                   b.chief_guest_name, b.chief_guest_designation, b.chief_guest_organization, b.chief_guest_photo_url,
+                   b.event_partner_organization, b.event_partner_details, b.event_partner_logo_url,
+                   b.event_coordinator_name, b.event_convenor_details, b.in_house_guest,
+                   b.work_status, b.final_file_url, b.photography_drive_link,
+                   b.files_urls,
                    b.approved_by, b.approved_at, b.created_at, b.updated_at,
                    h.name as hall_name, d.short_name as department_name, u.full_name as user_name, u.role as user_role,
                    i.short_name as institution_short_name, i.name as institution_name, d.institution_id
@@ -540,6 +599,7 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
             JOIN departments d ON b.department_id = d.id
             JOIN users u ON b.user_id = u.id
             LEFT JOIN institutions i ON d.institution_id = i.id
+
         `;
         const params = [];
 
@@ -550,6 +610,9 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
             // Principal sees all bookings for their institution
             query += ' WHERE d.institution_id = ?';
             params.push(req.user.institution_id);
+        } else if (req.user.role === 'designing_team' || req.user.role === 'photography_team') {
+            // Designing & Photography Teams see ALL APPROVED bookings from ALL institutions
+            query += ' WHERE b.status = "approved"';
         } else {
             // Department User
             // Logic:
@@ -593,7 +656,15 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
         return res.status(403).json({ error: 'Not authorized to book halls' });
     }
 
-    const { hall_id, booking_date, event_title, event_description, event_time, start_time, end_time } = req.body;
+    const {
+        hall_id, booking_date, event_title, event_description, event_time, start_time, end_time,
+        is_ac, is_fan, is_photography,
+        media_coordinator_name, contact_no,
+        chief_guest_name, chief_guest_designation, chief_guest_organization, chief_guest_photo_url,
+        event_partner_organization, event_partner_details, event_partner_logo_url,
+        event_coordinator_name, event_convenor_details, in_house_guest,
+        files_urls
+    } = req.body;
     const id = uuidv4();
 
     // Input validation for times
@@ -648,9 +719,28 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO bookings (id, hall_id, department_id, user_id, booking_date, event_title, event_description, event_time, start_time, end_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [id, hall_id, departmentId, req.user.id, booking_date, event_title, event_description, event_time, start_time, end_time, initialStatus]
+            `INSERT INTO bookings (
+                id, hall_id, department_id, user_id, booking_date, 
+                event_title, event_description, event_time, start_time, end_time, 
+                status, is_ac, is_fan, is_photography,
+                media_coordinator_name, contact_no,
+                chief_guest_name, chief_guest_designation, chief_guest_organization, chief_guest_photo_url,
+                event_partner_organization, event_partner_details, event_partner_logo_url,
+                event_coordinator_name, event_convenor_details, in_house_guest,
+                files_urls
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                id, hall_id, departmentId, req.user.id, booking_date,
+                event_title, event_description, event_time, start_time, end_time,
+                initialStatus, is_ac || false, is_fan || false, is_photography || false,
+                media_coordinator_name || null, contact_no || null,
+                chief_guest_name || null, chief_guest_designation || null, chief_guest_organization || null, chief_guest_photo_url || null,
+                event_partner_organization || null, event_partner_details || null, event_partner_logo_url || null,
+                event_coordinator_name || null, event_convenor_details || null, in_house_guest || null,
+                files_urls ? JSON.stringify(files_urls) : null
+            ]
         );
+
 
         // Fetch hall name for email
         const [hRows] = await pool.query('SELECT name FROM halls WHERE id = ?', [hall_id]);
@@ -730,6 +820,72 @@ app.patch('/api/bookings/:id/status', authenticateToken, async (req, res) => {
         }
     } else {
         res.sendStatus(403);
+    }
+});
+
+app.put('/api/bookings/:id', authenticateToken, async (req, res) => {
+    const { status, remarks, photography_drive_link } = req.body;
+    const { id } = req.params;
+
+    try {
+        // Photography Team: Update Link
+        if (req.user.role === 'photography_team') {
+            if (photography_drive_link !== undefined) {
+                await pool.query('UPDATE bookings SET photography_drive_link = ? WHERE id = ?', [photography_drive_link, id]);
+                return res.json({ message: 'Drive link updated' });
+            }
+            return res.status(403).json({ error: 'Photography team can only update drive link' });
+        }
+
+        // Admin/Principal: Update Status/Remarks/Link
+        if (['principal', 'super_admin'].includes(req.user.role)) {
+            const updates = [];
+            const values = [];
+
+            if (status) {
+                updates.push('status = ?');
+                values.push(status);
+            }
+            if (remarks !== undefined) {
+                updates.push('remarks = ?');
+                values.push(remarks);
+            }
+            if (photography_drive_link !== undefined) {
+                updates.push('photography_drive_link = ?');
+                values.push(photography_drive_link);
+            }
+
+            if (updates.length > 0) {
+                values.push(id);
+                await pool.query(`UPDATE bookings SET ${updates.join(', ')} WHERE id = ?`, values);
+            }
+            return res.json({ message: 'Booking updated' });
+        }
+
+        res.sendStatus(403);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// BUG FIX: Designing Team Upload Final Design
+app.post('/api/bookings/:id/final-design', authenticateToken, upload.single('file'), async (req, res) => {
+    // Only Designing Team can upload
+    if (req.user.role !== 'designing_team') return res.sendStatus(403);
+
+    // Check if file exists
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const final_file_url = `/uploads/${req.file.filename}`;
+
+    try {
+        await pool.query(
+            'UPDATE bookings SET final_file_url = ?, work_status = "completed" WHERE id = ?',
+            [final_file_url, req.params.id]
+        );
+        res.json({ message: 'Final design uploaded and work marked as completed', final_file_url });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -1010,6 +1166,197 @@ app.put('/api/departments/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// --- Press Release System ---
+
+// 1. Get Eligible Events for Press Release (Approved, Started, Not yet submitted)
+app.get('/api/bookings/pending-press-release', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'department_user') return res.sendStatus(403);
+
+    try {
+        // Fetch approved bookings for this user that have STARTED and don't have a press release
+        const [rows] = await pool.query(`
+            SELECT b.id, b.event_title, b.booking_date, b.event_time, b.start_time, b.event_coordinator_name
+            FROM bookings b
+            LEFT JOIN press_releases pr ON b.id = pr.booking_id
+            WHERE b.user_id = ? 
+            AND b.status = 'approved'
+            AND pr.id IS NULL
+            AND (
+                b.booking_date <= CURDATE() 
+                OR b.work_status = 'completed'
+            )
+            ORDER BY b.booking_date DESC
+        `, [req.user.id]);
+
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 2. Overdue Alerts (Ended > 3 hours ago & No Press Release)
+app.get('/api/notifications/press-release-overdue', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'department_user') return res.sendStatus(403);
+
+    try {
+        // Logic: Event ended 3 hours ago usually implies End Time + 3h < Now
+        // Simple heuristic: If booking_date < today -> Overdue.
+        // If booking_date == today, check end_time + 3h.
+
+        const [rows] = await pool.query(`
+            SELECT b.id, b.event_title, b.booking_date
+            FROM bookings b
+            LEFT JOIN press_releases pr ON b.id = pr.booking_id
+            WHERE b.user_id = ? 
+            AND b.status = 'approved'
+            AND pr.id IS NULL
+            AND (
+                b.booking_date < CURDATE() 
+                OR (
+                    b.booking_date = CURDATE() 
+                    AND ADDTIME(b.end_time, '03:00:00') <= CURTIME()
+                )
+            )
+        `, [req.user.id]);
+
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/press-releases', authenticateToken, upload.fields([
+    { name: 'english_writeup', maxCount: 1 },
+    { name: 'tamil_writeup', maxCount: 1 },
+    { name: 'photo_description', maxCount: 1 },
+    { name: 'photos', maxCount: 10 }
+]), async (req, res) => {
+    // Only Department Users (and maybe admin?) can submit
+    if (req.user.role !== 'department_user' && req.user.role !== 'super_admin') {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const { booking_id, coordinator_name, event_title, event_date } = req.body;
+
+        if (!booking_id || !coordinator_name || !event_title || !event_date) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Helper to get file path if exists
+        const getFile = (fieldName) => {
+            if (req.files[fieldName] && req.files[fieldName][0]) {
+                return `/uploads/${req.files[fieldName][0].filename}`;
+            }
+            return null;
+        };
+
+        const english_writeup = getFile('english_writeup');
+        const tamil_writeup = getFile('tamil_writeup');
+        const photo_description = getFile('photo_description');
+
+        // Photos array
+        let photos = [];
+        if (req.files['photos']) {
+            photos = req.files['photos'].map(f => `/uploads/${f.filename}`);
+        }
+
+        const id = uuidv4();
+
+        await pool.query(
+            `INSERT INTO press_releases 
+            (id, user_id, department_id, booking_id, coordinator_name, event_title, event_date, english_writeup, tamil_writeup, photo_description, photos)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                id,
+                req.user.id,
+                req.user.department_id || null, // Handle possible null
+                booking_id,
+                coordinator_name,
+                event_title,
+                event_date,
+                english_writeup,
+                tamil_writeup,
+                photo_description,
+                JSON.stringify(photos)
+            ]
+        );
+
+        res.status(201).json({ message: 'Press Release submitted successfully' });
+
+    } catch (error) {
+        console.error('Press Release Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 4. Admin: Get Press Releases
+app.get('/api/admin/press-releases', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+
+    const { status } = req.query;
+    let query = `
+        SELECT pr.*, d.name as department_name, i.name as institution_name, i.short_name as institution_short_name, u.email as user_email 
+        FROM press_releases pr
+        JOIN departments d ON pr.department_id = d.id
+        JOIN institutions i ON d.institution_id = i.id
+        JOIN users u ON pr.user_id = u.id
+    `;
+    const params = [];
+
+    if (status) {
+        query += ' WHERE pr.status = ?';
+        params.push(status);
+    }
+
+    query += ' ORDER BY pr.created_at DESC';
+
+    try {
+        const [rows] = await pool.query(query, params);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 5. Admin: Update Press Release Status
+app.put('/api/admin/press-releases/:id/status', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+
+    const { status } = req.body;
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    try {
+        await pool.query('UPDATE press_releases SET status = ? WHERE id = ?', [status, req.params.id]);
+        res.json({ message: 'Status updated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 6. Teams: Get Approved Press Releases (For Press Release Team & Designing Team)
+app.get('/api/teams/approved-press-releases', authenticateToken, async (req, res) => {
+    // Allowed roles: press_release_team, super_admin
+    const allowed = ['press_release_team', 'super_admin'];
+    if (!allowed.includes(req.user.role)) return res.sendStatus(403);
+
+    try {
+        const [rows] = await pool.query(`
+            SELECT pr.*, d.name as department_name, u.email as user_email
+            FROM press_releases pr
+            JOIN departments d ON pr.department_id = d.id
+            JOIN users u ON pr.user_id = u.id
+            WHERE pr.status = 'approved'
+            ORDER BY pr.created_at DESC
+        `);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.delete('/api/departments/:id', authenticateToken, async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
     try {
@@ -1102,7 +1449,7 @@ app.delete('/api/institutions/:id', authenticateToken, async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
     try {

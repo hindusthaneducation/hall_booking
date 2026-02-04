@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { showToast } from '../components/Toast';
 import { UserPlus } from 'lucide-react';
 import HindusthanLogo from '../images/hindusthan_logo.webp';
 import type { Database } from '../types/database';
@@ -69,9 +70,12 @@ export function Register() {
             }
 
             // Success - navigate to login
+            showToast.success('Registration successful! Please login.');
             navigate('/login');
         } catch (err: any) {
-            setError(err.message || 'Registration failed');
+            const msg = err.message || 'Registration failed';
+            setError(msg);
+            showToast.error(msg);
         } finally {
             setLoading(false);
         }

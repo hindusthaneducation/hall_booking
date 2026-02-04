@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { showToast } from '../../components/Toast';
 import { Users, Plus, Edit, X, Trash2, ArrowLeft, Search, GraduationCap, Shield } from 'lucide-react';
 import type { Database } from '../../types/database';
 import type { Institution } from '../../lib/types';
@@ -29,7 +30,7 @@ export function UsersManagement() {
     email: '',
     password: '',
     full_name: '',
-    role: 'department_user' as 'department_user' | 'principal' | 'super_admin',
+    role: 'department_user' as 'department_user' | 'principal' | 'super_admin' | 'designing_team' | 'photography_team' | 'press_release_team',
     department_id: '',
     institution_id: '',
   });
@@ -79,10 +80,12 @@ export function UsersManagement() {
         const { error } = await api.post('/auth/register', payload);
         if (error) throw error;
       }
+
+      showToast.success(editingUser ? 'User updated' : 'User created');
       resetForm();
       fetchData();
-    } catch (error) {
-      alert('Failed to save user');
+    } catch (error: any) {
+      showToast.error(error.message || 'Failed to save user');
     }
   };
 
@@ -91,9 +94,10 @@ export function UsersManagement() {
     try {
       const { error } = await api.delete(`/users/${id}`);
       if (error) throw error;
+      showToast.success('User deleted');
       fetchData();
-    } catch (error) {
-      alert('Failed to delete user');
+    } catch (error: any) {
+      showToast.error(error.message || 'Failed to delete user');
     }
   };
 
@@ -240,7 +244,7 @@ export function UsersManagement() {
           </div>
         </div>
 
-        <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-brand-card rounded-lg shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -421,6 +425,9 @@ function renderForm(showForm: boolean, editingUser: any, formData: any, setFormD
               <option value="department_user">Department User</option>
               <option value="principal">Principal</option>
               <option value="super_admin">Super Admin</option>
+              <option value="designing_team">Designing Team</option>
+              <option value="photography_team">Photography Team</option>
+              <option value="press_release_team">Press Release Team</option>
             </select>
           </div>
 

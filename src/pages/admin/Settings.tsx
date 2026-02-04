@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
+import { showToast } from '../../components/Toast';
 import { User, Shield, Save, Lock, Mail } from 'lucide-react'; // Added Lock
-import { SuccessModal } from '../../components/SuccessModal';
 
 export function Settings() {
     const { profile } = useAuth();
     const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
     const [registrationActive, setRegistrationActive] = useState(true);
 
     // Password Change State
@@ -45,10 +44,11 @@ export function Settings() {
                 key: 'registration_active',
                 value: newValue
             });
-        } catch (error) {
+            showToast.success(`Registration ${newValue ? 'enabled' : 'disabled'}`);
+        } catch (error: any) {
             console.error('Error updating setting:', error);
             setRegistrationActive(!newValue); // Revert
-            alert('Failed to update setting');
+            showToast.error(error.message || 'Failed to update setting');
         }
     };
 
@@ -63,10 +63,10 @@ export function Settings() {
             });
 
             if (error) throw error;
-            setShowSuccess(true);
-        } catch (error) {
+            showToast.success('Profile updated successfully');
+        } catch (error: any) {
             console.error('Update failed:', error);
-            alert('Failed to update profile');
+            showToast.error(error.message || 'Failed to update profile');
         } finally {
             setLoading(false);
         }
@@ -75,7 +75,7 @@ export function Settings() {
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
         if (passwords.new_password !== passwords.confirm_password) {
-            alert('New passwords do not match');
+            showToast.error('New passwords do not match');
             return;
         }
         setLoading(true);
@@ -85,12 +85,12 @@ export function Settings() {
                 new_password: passwords.new_password
             });
             if (error) {
-                alert(typeof error === 'string' ? error : 'Failed to change password: Incorrect old password');
+                showToast.error(typeof error === 'string' ? error : 'Incorrect old password');
                 throw error;
             }
-            alert('Password changed successfully');
+            showToast.success('Password changed successfully');
             setPasswords({ old_password: '', new_password: '', confirm_password: '' });
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
         } finally {
             setLoading(false);
@@ -242,14 +242,6 @@ export function Settings() {
                         </div>
                     </div>
                 </div>
-            )}
-
-            {showSuccess && (
-                <SuccessModal
-                    title="Success"
-                    message="Profile updated successfully!"
-                    onClose={() => setShowSuccess(false)}
-                />
             )}
         </div>
     );

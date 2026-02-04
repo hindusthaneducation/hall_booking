@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { showToast } from '../../components/Toast';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
 import type { Institution } from '../../lib/types';
 import { ImageWithFallback } from '../../components/ImageWithFallback';
@@ -42,23 +43,19 @@ export function InstitutionsManagement() {
             }
 
             if (editingItem) {
-                // For PUT request with file, we need to send FormData. 
-                // Note: lib/api might default to json. We need to ensure it handles multipart or use fetch directly? 
-                // Looking at api wrapper usually handles headers? 
-                // If api wrapper is simple, force headers to be undefined so browser sets boundary.
-                // Assuming api.put handles this or we pass config.
-                // Let's assume standard axios/fetch pattern: if body is FormData, headers set auto.
                 const { error } = await api.put(`/institutions/${editingItem.id}`, data as any);
                 if (error) throw error;
             } else {
                 const { error } = await api.post('/institutions', data as any);
                 if (error) throw error;
             }
+
+            showToast.success(editingItem ? 'Institution updated' : 'Institution created');
             resetForm();
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('Failed to save institution');
+            showToast.error(error.message || 'Failed to save institution');
         }
     };
 
@@ -67,9 +64,10 @@ export function InstitutionsManagement() {
         try {
             const { error } = await api.delete(`/institutions/${id}`);
             if (error) throw error;
+            showToast.success('Institution deleted');
             fetchData();
-        } catch (error) {
-            alert('Failed to delete institution');
+        } catch (error: any) {
+            showToast.error(error.message || 'Failed to delete institution');
         }
     };
 

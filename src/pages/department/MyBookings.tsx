@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Building2, Calendar, Clock, CheckCircle, XCircle, AlertCircle, FileText } from 'lucide-react';
+import { showToast } from '../../components/Toast';
+import { Building2, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Eye, Camera } from 'lucide-react';
 import type { Database } from '../../types/database';
+import { EventDetailsModal } from '../../components/EventDetailsModal';
+import { Pagination } from '../../components/Pagination';
 
 type BookingRow = Database['public']['Tables']['bookings']['Row'];
 type Booking = BookingRow & {
   hall_name: string;
+  department_name: string;
 };
 
 export function MyBookings() {
@@ -14,6 +18,9 @@ export function MyBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     fetchBookings();
@@ -26,8 +33,9 @@ export function MyBookings() {
 
       if (error) throw error;
       if (data) setBookings(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching bookings:', error);
+      showToast.error('Failed to load your bookings');
     } finally {
       setLoading(false);
     }
@@ -41,6 +49,17 @@ export function MyBookings() {
     if (filter === 'all') return true;
     return booking.status === filter;
   });
+
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+  const currentBookings = filteredBookings.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleFilterChange = (newFilter: 'all' | 'pending' | 'approved' | 'rejected') => {
+    setFilter(newFilter);
+    setCurrentPage(1);
+  };
 
   const statusConfig = {
     pending: {
@@ -84,7 +103,7 @@ export function MyBookings() {
 
       <div className="mb-6 flex items-center space-x-2">
         <button
-          onClick={() => setFilter('all')}
+          onClick={() => handleFilterChange('all')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'all'
             ? 'bg-brand-primary text-white'
             : 'bg-brand-card border border-gray-300 text-brand-text hover:bg-brand-base/50'
@@ -93,7 +112,7 @@ export function MyBookings() {
           All Bookings
         </button>
         <button
-          onClick={() => setFilter('pending')}
+          onClick={() => handleFilterChange('pending')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'pending'
             ? 'bg-brand-primary text-white'
             : 'bg-brand-card border border-gray-300 text-brand-text hover:bg-brand-base/50'
@@ -102,7 +121,7 @@ export function MyBookings() {
           Pending
         </button>
         <button
-          onClick={() => setFilter('approved')}
+          onClick={() => handleFilterChange('approved')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'approved'
             ? 'bg-brand-primary text-white'
             : 'bg-brand-card border border-gray-300 text-brand-text hover:bg-brand-base/50'
@@ -111,7 +130,7 @@ export function MyBookings() {
           Approved
         </button>
         <button
-          onClick={() => setFilter('rejected')}
+          onClick={() => handleFilterChange('rejected')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filter === 'rejected'
             ? 'bg-brand-primary text-white'
             : 'bg-brand-card border border-gray-300 text-brand-text hover:bg-brand-base/50'
@@ -127,59 +146,89 @@ export function MyBookings() {
           <p className="text-gray-600">No bookings found</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredBookings.map((booking) => {
-            const config = statusConfig[booking.status];
-            const StatusIcon = config.icon;
-            return (
-              <div
-                key={booking.id}
-                className={`bg-white rounded-lg border p-6 ${config.borderColor}`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                      {booking.event_title}
-                    </h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <Building2 className="w-4 h-4 mr-1" />
-                        <span>{booking.hall_name}</span>
+        <>
+          <div className="space-y-4">
+            {currentBookings.map((booking) => {
+              const config = statusConfig[booking.status];
+              const StatusIcon = config.icon;
+              return (
+                <div
+                  key={booking.id}
+                  className={`bg-white rounded-lg border p-6 ${config.borderColor}`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                        {booking.event_title}
+                      </h3>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <Building2 className="w-4 h-4 mr-1" />
+                          <span>{booking.hall_name}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          <span>{new Date(booking.booking_date).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1" />
+                          <span>{booking.event_time}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        <span>{new Date(booking.booking_date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>{booking.event_time}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className={`flex items-center px-3 py-1 rounded-full ${config.bgColor}`}>
+                        <StatusIcon className={`w-4 h-4 mr-1 ${config.color}`} />
+                        <span className={`text-sm font-medium ${config.color}`}>
+                          {config.label}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  <div className={`flex items-center px-3 py-1 rounded-full ${config.bgColor}`}>
-                    <StatusIcon className={`w-4 h-4 mr-1 ${config.color}`} />
-                    <span className={`text-sm font-medium ${config.color}`}>
-                      {config.label}
-                    </span>
+
+                  {booking.event_description && (
+                    <p className="text-gray-600 mb-4">{booking.event_description}</p>
+                  )}
+
+                  {booking.status === 'rejected' && booking.rejection_reason && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-sm font-medium text-red-900 mb-1">Rejection Reason:</p>
+                      <p className="text-sm text-red-700">{booking.rejection_reason}</p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
+                    {booking.photography_drive_link && (
+                      <div className="mr-auto inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <Camera className="w-3.5 h-3.5 mr-1.5" />
+                        Photos Available
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setSelectedBooking(booking)}
+                      className="inline-flex items-center px-4 py-2 border border-brand-primary text-sm font-medium rounded-md text-brand-primary bg-white hover:bg-brand-base/10"
+                    >
+                      View Details <Eye className="w-4 h-4 ml-2" />
+                    </button>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      )}
 
-                {booking.event_description && (
-                  <p className="text-gray-600 mb-4">{booking.event_description}</p>
-                )}
-
-                {/* Approval Letter Feature Removed */}
-
-                {booking.status === 'rejected' && booking.rejection_reason && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <p className="text-sm font-medium text-red-900 mb-1">Rejection Reason:</p>
-                    <p className="text-sm text-red-700">{booking.rejection_reason}</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      {selectedBooking && (
+        <EventDetailsModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onUpdate={fetchBookings}
+        />
       )}
     </div>
   );

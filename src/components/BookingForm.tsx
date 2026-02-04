@@ -2,7 +2,8 @@ import { useState, useEffect, FormEvent } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDateLocal } from '../lib/utils';
-import { X, Calendar as CalendarIcon, Clock, Building2 } from 'lucide-react';
+import { showToast } from './Toast';
+import { X, Clock } from 'lucide-react';
 
 interface BookingFormProps {
   hallId: string;
@@ -30,7 +31,27 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
     eventDescription: '',
     startTime: '',
     endTime: '',
+    isAc: false,
+    isFan: false,
+    isPhotography: false,
+    // New Fields
+    mediaCoordinatorName: '',
+    contactNo: '',
+    chiefGuestName: '',
+    chiefGuestDesignation: '',
+    chiefGuestOrganization: '',
+    eventPartnerOrganization: '',
+    eventPartnerDetails: '',
+    eventCoordinatorName: '',
+    eventConvenorDetails: '',
+    inHouseGuest: '',
   });
+
+  // File states
+  const [chiefGuestPhoto, setChiefGuestPhoto] = useState<File | null>(null);
+  const [eventPartnerLogo, setEventPartnerLogo] = useState<File | null>(null);
+  const [extraFiles, setExtraFiles] = useState<File[]>([]);
+
   const [occupiedSlots, setOccupiedSlots] = useState<OccupiedSlot[]>([]);
 
   useEffect(() => {
@@ -57,18 +78,41 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
   }, [hallId, date]);
   // const [file, setFile] = useState<File | null>(null); // Feature removed
 
+
+  const uploadFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const { data, error } = await api.post<{ url: string }>('/upload', formData);
+    if (error || !data) throw error || new Error('Upload failed');
+    return data.url;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      let approvalLetterUrl = '';
+      // 1. Upload Files
+      let chiefGuestPhotoUrl = null;
+      if (chiefGuestPhoto) {
+        chiefGuestPhotoUrl = await uploadFile(chiefGuestPhoto);
+      }
 
+      let eventPartnerLogoUrl = null;
+      if (eventPartnerLogo) {
+        eventPartnerLogoUrl = await uploadFile(eventPartnerLogo);
+      }
 
+      const filesUrls: string[] = [];
+      if (extraFiles.length > 0) {
+        // Upload concurrently
+        const uploadPromises = extraFiles.map(file => uploadFile(file));
+        const urls = await Promise.all(uploadPromises);
+        filesUrls.push(...urls);
+      }
 
-      // if (file) { ... } logic removed
-
+      // 2. Submit Booking
       const { error: insertError } = await api.post('/bookings', {
         hall_id: hallId,
         department_id: departmentId,
@@ -77,22 +121,42 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
         event_title: formData.eventTitle,
         event_description: formData.eventDescription,
         event_time: `${formData.startTime} - ${formData.endTime}`,
-        start_time: formData.startTime, // HH:mm format
-        end_time: formData.endTime, // HH:mm format
-        approval_letter_url: approvalLetterUrl,
+        start_time: formData.startTime,
+        end_time: formData.endTime,
         status: 'pending',
+        is_ac: formData.isAc,
+        is_fan: formData.isFan,
+        is_photography: formData.isPhotography,
+
+        // New Fields
+        media_coordinator_name: formData.mediaCoordinatorName,
+        contact_no: formData.contactNo,
+        chief_guest_name: formData.chiefGuestName,
+        chief_guest_designation: formData.chiefGuestDesignation,
+        chief_guest_organization: formData.chiefGuestOrganization,
+        chief_guest_photo_url: chiefGuestPhotoUrl,
+        event_partner_organization: formData.eventPartnerOrganization,
+        event_partner_details: formData.eventPartnerDetails,
+        event_partner_logo_url: eventPartnerLogoUrl,
+        event_coordinator_name: formData.eventCoordinatorName,
+        event_convenor_details: formData.eventConvenorDetails,
+        in_house_guest: formData.inHouseGuest,
+        files_urls: filesUrls.length > 0 ? filesUrls : null
       });
 
       if (insertError) throw insertError;
 
+      showToast.success('Booking request submitted!');
       onSuccess();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+    } catch (err: any) {
+      const errorMessage = err.message || 'An error occurred';
       setError(errorMessage);
+      showToast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -191,6 +255,41 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
               </div>
             </div>
 
+            <div className="space-y-3 pt-2">
+              <label className="block text-sm font-medium text-gray-700">Optional Services</label>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center space-x-2 border p-3 rounded-md cursor-pointer hover:bg-gray-50 bg-white">
+                  <input
+                    type="checkbox"
+                    checked={formData.isAc}
+                    onChange={(e) => setFormData({ ...formData, isAc: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">AC</span>
+                </label>
+
+                <label className="flex items-center space-x-2 border p-3 rounded-md cursor-pointer hover:bg-gray-50 bg-white">
+                  <input
+                    type="checkbox"
+                    checked={formData.isFan}
+                    onChange={(e) => setFormData({ ...formData, isFan: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Fan</span>
+                </label>
+
+                <label className="flex items-center space-x-2 border p-3 rounded-md cursor-pointer hover:bg-gray-50 bg-white">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPhotography}
+                    onChange={(e) => setFormData({ ...formData, isPhotography: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Photography</span>
+                </label>
+              </div>
+            </div>
+
             {occupiedSlots.length > 0 && (
               <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-md">
                 <h4 className="text-sm font-medium text-orange-800 mb-2">Occupied Slots:</h4>
@@ -208,7 +307,149 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
               </div>
             )}
 
-            {/* File Upload Removed as per request */}
+
+            {/* New Sections */}
+            <hr className="border-gray-200 my-4" />
+            <h3 className="font-semibold text-gray-900">Event Details</h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Media Coordinator Name</label>
+                <input
+                  type="text"
+                  value={formData.mediaCoordinatorName}
+                  onChange={(e) => setFormData({ ...formData, mediaCoordinatorName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact No</label>
+                <input
+                  type="text"
+                  value={formData.contactNo}
+                  onChange={(e) => setFormData({ ...formData, contactNo: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Chief Guest Details</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={formData.chiefGuestName}
+                    onChange={(e) => setFormData({ ...formData, chiefGuestName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Designation"
+                    value={formData.chiefGuestDesignation}
+                    onChange={(e) => setFormData({ ...formData, chiefGuestDesignation: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Organization"
+                    value={formData.chiefGuestOrganization}
+                    onChange={(e) => setFormData({ ...formData, chiefGuestOrganization: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <div className="mt-1">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Chief Guest Photo</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setChiefGuestPhoto(e.target.files?.[0] || null)}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Event Partner</h4>
+                <input
+                  type="text"
+                  placeholder="Organization Name"
+                  value={formData.eventPartnerOrganization}
+                  onChange={(e) => setFormData({ ...formData, eventPartnerOrganization: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm mb-2"
+                />
+                <textarea
+                  placeholder="Other Details"
+                  value={formData.eventPartnerDetails}
+                  onChange={(e) => setFormData({ ...formData, eventPartnerDetails: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm mb-2"
+                  rows={2}
+                />
+                <div className="mt-1">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Partner Logo</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEventPartnerLogo(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Coordinator</label>
+                  <input
+                    type="text"
+                    value={formData.eventCoordinatorName}
+                    onChange={(e) => setFormData({ ...formData, eventCoordinatorName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">In-house Guest</label>
+                  <textarea
+                    value={formData.inHouseGuest}
+                    onChange={(e) => setFormData({ ...formData, inHouseGuest: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    rows={1}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Event Convenor Details</label>
+                <textarea
+                  value={formData.eventConvenorDetails}
+                  onChange={(e) => setFormData({ ...formData, eventConvenorDetails: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  rows={2}
+                />
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Additional Files (Max 10, up to 1GB)</label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      const files = Array.from(e.target.files);
+                      if (files.length > 10) {
+                        alert('Max 10 files allowed');
+                        return;
+                      }
+                      setExtraFiles(files);
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                <p className="text-xs text-gray-500 mt-1">{extraFiles.length} file(s) selected</p>
+              </div>
+
+            </div>
+
           </div>
 
           <div className="flex justify-end space-x-3 mt-6">

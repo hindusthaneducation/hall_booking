@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDateLocal } from '../../lib/utils';
+import { showToast } from '../../components/Toast';
 import { Building2, Users, Maximize, ArrowLeft, X, Volume2 } from 'lucide-react';
 import { Calendar } from '../../components/Calendar';
 import { BookingForm } from '../../components/BookingForm';
@@ -64,8 +65,9 @@ export function HallDetails() {
 
       if (error) throw error;
       setHall(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching hall:', error);
+      showToast.error('Failed to load hall details');
     } finally {
       setLoading(false);
     }
@@ -164,6 +166,7 @@ export function HallDetails() {
   const handleBookingSuccess = () => {
     setShowBookingForm(false);
     setSelectedDate(null);
+    showToast.success('Booking requested successfully!');
     setShowSuccessModal(true);
     generateCalendar();
   };
