@@ -58,7 +58,10 @@ export function AllBookings() {
   const filteredBookings = bookings.filter((booking) => {
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     const matchesInstitution = institutionFilter === 'all' || booking.institution_id === institutionFilter;
-    const matchesSearch = booking.event_title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      booking.event_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.hall_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.department_name.toLowerCase().includes(searchQuery.toLowerCase());
 
     let matchesDate = true;
     if (startDate) {
@@ -194,22 +197,21 @@ export function AllBookings() {
           </div>
         </div>
 
-        <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-          <label className="text-xs font-medium text-gray-500 flex items-center">
-            <Search className="w-3 h-3 mr-1" /> Search
-          </label>
-          <div className="relative w-full">
+        <div className="space-y-1 sm:col-span-2 lg:col-span-4">
+          <div className="relative w-full group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+            </div>
             <input
               type="text"
-              placeholder="Event name..."
+              placeholder="Search by event title, hall, or department..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all shadow-sm"
             />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
         </div>
       </div>
