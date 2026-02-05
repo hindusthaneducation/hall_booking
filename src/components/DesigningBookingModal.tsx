@@ -40,7 +40,10 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
                 body: formData
             });
 
-            if (!response.ok) throw new Error('Upload failed');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Upload failed');
+            }
             const resData = await response.json();
 
             // Optimistically update or just alert

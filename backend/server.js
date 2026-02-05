@@ -57,7 +57,12 @@ const storage = multer.diskStorage({
         cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
-const upload = multer({ storage: storage });
+const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024; // Default 5MB
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: MAX_FILE_SIZE }
+});
 
 // Auto-Deletion of Guest Images (Daily at Midnight)
 cron.schedule('0 0 * * *', async () => {
@@ -163,6 +168,20 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
     }
     // Return relative path. Frontend should prepend API_BASE_URL.
     res.json({ url: `/uploads/${req.file.filename}` });
+});
+
+// Middleware to handle Multer Limit Errors
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.` });
+        }
+        return res.status(400).json({ error: err.message });
+    } else if (err) {
+        // Unknown error
+        return res.status(500).json({ error: err.message });
+    }
+    next();
 });
 
 // Emergency DB Fix Endpoint

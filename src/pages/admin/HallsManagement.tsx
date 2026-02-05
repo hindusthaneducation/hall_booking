@@ -139,7 +139,10 @@ export function HallsManagement() {
         headers: { 'Authorization': `Bearer ${token}` },
         body: formDataObj
       });
-      if (!response.ok) throw new Error('Upload failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Upload failed');
+      }
       const data = await response.json();
       setFormData(prev => ({ ...prev, image_url: data.url }));
       showToast.success('Image uploaded');

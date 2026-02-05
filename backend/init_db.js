@@ -19,7 +19,7 @@ export async function initDB() {
             const dns = await import('dns');
             const { promisify } = await import('util');
             const lookup = promisify(dns.lookup);
-            if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') {
+            if (process.env.DB_HOST) {
                 const { address } = await lookup(process.env.DB_HOST);
                 console.log(`🔍 DNS Resolution: ${process.env.DB_HOST} -> ${address}`);
             }
