@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { showToast } from '../../components/Toast';
-import { Save, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Save, Upload, FileText, CheckCircle, AlertCircle, X, Image as ImageIcon, File as FileIcon } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export function PressRelease() {
     const { profile } = useAuth();
@@ -46,22 +47,88 @@ export function PressRelease() {
         english_writeup: File | null;
         tamil_writeup: File | null;
         photo_description: File | null;
-        photos: FileList | null;
+        photos: File[];
     }>({
         english_writeup: null,
         tamil_writeup: null,
         photo_description: null,
-        photos: null
+        photos: []
     });
+
+    const [dragActive, setDragActive] = useState<{ [key: string]: boolean }>({});
+
+    const handleDrag = (e: React.DragEvent, field: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setDragActive(prev => ({ ...prev, [field]: true }));
+        } else if (e.type === 'dragleave') {
+            setDragActive(prev => ({ ...prev, [field]: false }));
+        }
+    };
+
+    const validateFile = (file: File, type: 'image' | 'doc') => {
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+            showToast.error(`File "${file.name}" exceeds 50MB limit.`);
+            return false;
+        }
+        if (type === 'image' && !file.type.startsWith('image/')) {
+            showToast.error(`File "${file.name}" is not a valid image.`);
+            return false;
+        }
+        if (type === 'doc' && !['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
+            // Allow generic check if strict mime types fail, but warn
+            if (!file.name.match(/\.(doc|docx|pdf)$/i)) {
+                showToast.error(`File "${file.name}" is not a valid document (PDF/DOC).`);
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const handleDrop = (e: React.DragEvent, field: keyof typeof files) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(prev => ({ ...prev, [field]: false }));
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            processFiles(e.dataTransfer.files, field);
+        }
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof typeof files) => {
         if (e.target.files && e.target.files.length > 0) {
-            if (field === 'photos') {
-                setFiles(prev => ({ ...prev, photos: e.target.files }));
-            } else {
-                setFiles(prev => ({ ...prev, [field]: e.target.files![0] }));
+            processFiles(e.target.files, field);
+        }
+    };
+
+    const processFiles = (fileList: FileList, field: keyof typeof files) => {
+        if (field === 'photos') {
+            const newPhotos: File[] = [];
+            Array.from(fileList).forEach(file => {
+                if (validateFile(file, 'image')) {
+                    newPhotos.push(file);
+                }
+            });
+            setFiles(prev => ({ ...prev, photos: [...prev.photos, ...newPhotos] }));
+        } else {
+            const file = fileList[0];
+            if (validateFile(file, 'doc')) {
+                setFiles(prev => ({ ...prev, [field]: file }));
             }
         }
+    };
+
+    const removePhoto = (index: number) => {
+        setFiles(prev => ({
+            ...prev,
+            photos: prev.photos.filter((_, i) => i !== index)
+        }));
+    };
+
+    const removeDoc = (field: keyof typeof files) => {
+        setFiles(prev => ({ ...prev, [field]: null }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -88,10 +155,10 @@ export function PressRelease() {
         if (files.tamil_writeup) data.append('tamil_writeup', files.tamil_writeup);
         if (files.photo_description) data.append('photo_description', files.photo_description);
 
-        if (files.photos) {
-            for (let i = 0; i < files.photos.length; i++) {
-                data.append('photos', files.photos[i]);
-            }
+        if (files.photos.length > 0) {
+            files.photos.forEach(photo => {
+                data.append('photos', photo);
+            });
         }
 
         try {
@@ -103,7 +170,7 @@ export function PressRelease() {
             // Reset form
             setFormData({ coordinator_name: '', event_title: '', event_date: '' });
             setSelectedBookingId('');
-            setFiles({ english_writeup: null, tamil_writeup: null, photo_description: null, photos: null });
+            setFiles({ english_writeup: null, tamil_writeup: null, photo_description: null, photos: [] });
 
             // Refresh lists
             fetchEligibleEvents();
@@ -284,20 +351,49 @@ export function PressRelease() {
                             <label className="block text-sm font-medium text-gray-900 mb-2">
                                 English Write-up
                             </label>
-                            <div className="flex items-center justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-brand-primary transition-colors">
-                                <div className="space-y-1 text-center">
-                                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600">
-                                        <label htmlFor="english-file" className="relative cursor-pointer bg-white rounded-md font-medium text-brand-primary hover:text-brand-secondary focus-within:outline-none">
-                                            <span>Upload a file</span>
-                                            <input id="english-file" name="english-file" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'english_writeup')} accept=".doc,.docx,.pdf" />
-                                        </label>
-                                        <p className="pl-1">or drag and drop</p>
-                                    </div>
-                                    <p className="text-xs text-gray-500">
-                                        Document up to 10MB
-                                    </p>
-                                    {files.english_writeup && <p className="text-sm text-green-600 font-semibold mt-2">{files.english_writeup.name}</p>}
+                            <div
+                                onDragEnter={(e) => handleDrag(e, 'english_writeup')}
+                                onDragLeave={(e) => handleDrag(e, 'english_writeup')}
+                                onDragOver={(e) => handleDrag(e, 'english_writeup')}
+                                onDrop={(e) => handleDrop(e, 'english_writeup')}
+                                className={cn(
+                                    "flex items-center justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors",
+                                    dragActive.english_writeup ? "border-brand-primary bg-brand-primary/5" : "border-gray-300 hover:border-brand-primary"
+                                )}
+                            >
+                                <div className="space-y-1 text-center w-full">
+                                    {files.english_writeup ? (
+                                        <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200 text-left">
+                                            <div className="flex items-center overflow-hidden">
+                                                <FileText className="w-8 h-8 text-green-600 mr-3 shrink-0" />
+                                                <div className="truncate">
+                                                    <p className="text-sm font-medium text-green-800 truncate">{files.english_writeup.name}</p>
+                                                    <p className="text-xs text-green-600">{(files.english_writeup.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeDoc('english_writeup')}
+                                                className="p-1 hover:bg-green-100 rounded-full text-green-700 transition-colors ml-2"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Upload className={cn("mx-auto h-12 w-12", dragActive.english_writeup ? "text-brand-primary" : "text-gray-400")} />
+                                            <div className="flex text-sm text-gray-600 justify-center">
+                                                <label htmlFor="english-file" className="relative cursor-pointer bg-white rounded-md font-medium text-brand-primary hover:text-brand-secondary focus-within:outline-none">
+                                                    <span>Upload a file</span>
+                                                    <input id="english-file" name="english-file" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'english_writeup')} accept=".doc,.docx,.pdf" />
+                                                </label>
+                                                <p className="pl-1">or drag and drop</p>
+                                            </div>
+                                            <p className="text-xs text-gray-500">
+                                                PDF or Word up to 50MB
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -307,19 +403,49 @@ export function PressRelease() {
                             <label className="block text-sm font-medium text-gray-900 mb-2">
                                 Tamil Write-up
                             </label>
-                            <div className="flex items-center justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-brand-primary transition-colors">
-                                <div className="space-y-1 text-center">
-                                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600">
-                                        <label htmlFor="tamil-file" className="relative cursor-pointer bg-white rounded-md font-medium text-brand-primary hover:text-brand-secondary focus-within:outline-none">
-                                            <span>Upload a file</span>
-                                            <input id="tamil-file" name="tamil-file" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'tamil_writeup')} accept=".doc,.docx,.pdf" />
-                                        </label>
-                                    </div>
-                                    <p className="text-xs text-gray-500">
-                                        Document up to 10MB
-                                    </p>
-                                    {files.tamil_writeup && <p className="text-sm text-green-600 font-semibold mt-2">{files.tamil_writeup.name}</p>}
+                            <div
+                                onDragEnter={(e) => handleDrag(e, 'tamil_writeup')}
+                                onDragLeave={(e) => handleDrag(e, 'tamil_writeup')}
+                                onDragOver={(e) => handleDrag(e, 'tamil_writeup')}
+                                onDrop={(e) => handleDrop(e, 'tamil_writeup')}
+                                className={cn(
+                                    "flex items-center justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors",
+                                    dragActive.tamil_writeup ? "border-brand-primary bg-brand-primary/5" : "border-gray-300 hover:border-brand-primary"
+                                )}
+                            >
+                                <div className="space-y-1 text-center w-full">
+                                    {files.tamil_writeup ? (
+                                        <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200 text-left">
+                                            <div className="flex items-center overflow-hidden">
+                                                <FileText className="w-8 h-8 text-green-600 mr-3 shrink-0" />
+                                                <div className="truncate">
+                                                    <p className="text-sm font-medium text-green-800 truncate">{files.tamil_writeup.name}</p>
+                                                    <p className="text-xs text-green-600">{(files.tamil_writeup.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeDoc('tamil_writeup')}
+                                                className="p-1 hover:bg-green-100 rounded-full text-green-700 transition-colors ml-2"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Upload className={cn("mx-auto h-12 w-12", dragActive.tamil_writeup ? "text-brand-primary" : "text-gray-400")} />
+                                            <div className="flex text-sm text-gray-600 justify-center">
+                                                <label htmlFor="tamil-file" className="relative cursor-pointer bg-white rounded-md font-medium text-brand-primary hover:text-brand-secondary focus-within:outline-none">
+                                                    <span>Upload a file</span>
+                                                    <input id="tamil-file" name="tamil-file" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'tamil_writeup')} accept=".doc,.docx,.pdf" />
+                                                </label>
+                                                <p className="pl-1">or drag and drop</p>
+                                            </div>
+                                            <p className="text-xs text-gray-500">
+                                                PDF or Word up to 50MB
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -329,20 +455,57 @@ export function PressRelease() {
                             <label className="block text-sm font-medium text-gray-900 mb-2">
                                 Photos (Upload up to 10)
                             </label>
-                            <div className="flex items-center justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-brand-primary transition-colors">
+                            <div
+                                onDragEnter={(e) => handleDrag(e, 'photos')}
+                                onDragLeave={(e) => handleDrag(e, 'photos')}
+                                onDragOver={(e) => handleDrag(e, 'photos')}
+                                onDrop={(e) => handleDrop(e, 'photos')}
+                                className={cn(
+                                    "px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors",
+                                    dragActive.photos ? "border-brand-primary bg-brand-primary/5" : "border-gray-300 hover:border-brand-primary"
+                                )}
+                            >
                                 <div className="space-y-1 text-center">
-                                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600">
+                                    <Upload className={cn("mx-auto h-12 w-12", dragActive.photos ? "text-brand-primary" : "text-gray-400")} />
+                                    <div className="flex text-sm text-gray-600 justify-center">
                                         <label htmlFor="photos-file" className="relative cursor-pointer bg-white rounded-md font-medium text-brand-primary hover:text-brand-secondary focus-within:outline-none">
                                             <span>Upload images</span>
                                             <input id="photos-file" name="photos-file" type="file" multiple className="sr-only" onChange={(e) => handleFileChange(e, 'photos')} accept="image/*" />
                                         </label>
+                                        <p className="pl-1">or drag and drop</p>
                                     </div>
                                     <p className="text-xs text-gray-500">
-                                        Max 1GB per file
+                                        Max 50MB per file
                                     </p>
-                                    {files.photos && <p className="text-sm text-green-600 font-semibold mt-2">{files.photos.length} file(s) selected</p>}
                                 </div>
+
+                                {/* Photo List */}
+                                {files.photos.length > 0 && (
+                                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        {files.photos.map((file, idx) => (
+                                            <div key={idx} className="relative group bg-gray-50 border border-gray-200 rounded-lg p-2 flex items-center">
+                                                <div className="w-10 h-10 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                                    <ImageIcon className="w-6 h-6 text-gray-500" />
+                                                </div>
+                                                <div className="ml-3 min-w-0 flex-1">
+                                                    <p className="text-xs font-medium text-gray-900 truncate" title={file.name}>
+                                                        {file.name}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-500">
+                                                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removePhoto(idx)}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -351,19 +514,49 @@ export function PressRelease() {
                             <label className="block text-sm font-medium text-gray-900 mb-2">
                                 Photo Description
                             </label>
-                            <div className="flex items-center justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-brand-primary transition-colors">
-                                <div className="space-y-1 text-center">
-                                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600">
-                                        <label htmlFor="desc-file" className="relative cursor-pointer bg-white rounded-md font-medium text-brand-primary hover:text-brand-secondary focus-within:outline-none">
-                                            <span>Upload a file</span>
-                                            <input id="desc-file" name="desc-file" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'photo_description')} accept=".doc,.docx,.pdf" />
-                                        </label>
-                                    </div>
-                                    <p className="text-xs text-gray-500">
-                                        Document up to 10MB
-                                    </p>
-                                    {files.photo_description && <p className="text-sm text-green-600 font-semibold mt-2">{files.photo_description.name}</p>}
+                            <div
+                                onDragEnter={(e) => handleDrag(e, 'photo_description')}
+                                onDragLeave={(e) => handleDrag(e, 'photo_description')}
+                                onDragOver={(e) => handleDrag(e, 'photo_description')}
+                                onDrop={(e) => handleDrop(e, 'photo_description')}
+                                className={cn(
+                                    "flex items-center justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors",
+                                    dragActive.photo_description ? "border-brand-primary bg-brand-primary/5" : "border-gray-300 hover:border-brand-primary"
+                                )}
+                            >
+                                <div className="space-y-1 text-center w-full">
+                                    {files.photo_description ? (
+                                        <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200 text-left">
+                                            <div className="flex items-center overflow-hidden">
+                                                <FileText className="w-8 h-8 text-green-600 mr-3 shrink-0" />
+                                                <div className="truncate">
+                                                    <p className="text-sm font-medium text-green-800 truncate">{files.photo_description.name}</p>
+                                                    <p className="text-xs text-green-600">{(files.photo_description.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeDoc('photo_description')}
+                                                className="p-1 hover:bg-green-100 rounded-full text-green-700 transition-colors ml-2"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Upload className={cn("mx-auto h-12 w-12", dragActive.photo_description ? "text-brand-primary" : "text-gray-400")} />
+                                            <div className="flex text-sm text-gray-600 justify-center">
+                                                <label htmlFor="desc-file" className="relative cursor-pointer bg-white rounded-md font-medium text-brand-primary hover:text-brand-secondary focus-within:outline-none">
+                                                    <span>Upload a file</span>
+                                                    <input id="desc-file" name="desc-file" type="file" className="sr-only" onChange={(e) => handleFileChange(e, 'photo_description')} accept=".doc,.docx,.pdf" />
+                                                </label>
+                                                <p className="pl-1">or drag and drop</p>
+                                            </div>
+                                            <p className="text-xs text-gray-500">
+                                                PDF or Word up to 50MB
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
