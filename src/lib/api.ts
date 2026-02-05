@@ -35,13 +35,25 @@ class ApiClient {
                 headers,
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'API request failed');
+            // Handle 204 No Content
+            if (response.status === 204) {
+                return { data: null, error: null };
             }
 
-            return { data, error: null };
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'API request failed');
+                }
+                return { data, error: null };
+            } else {
+                // Non-JSON response (likely HTML error page e.g. 502 Bad Gateway)
+                const text = await response.text();
+                console.error('API Error (Non-JSON response):', text.substring(0, 500)); // Log first 500 chars
+                throw new Error(`Server Error (${response.status}): The server returned an invalid response.`);
+            }
+
         } catch (error) {
             return { data: null, error: error as Error };
         }
