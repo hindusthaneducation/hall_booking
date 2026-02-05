@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api, API_URL } from '../../lib/api';
 import { showToast } from '../../components/Toast';
-import { Building2, Plus, Edit, X, Upload, ArrowLeft, Search, GraduationCap, Users } from 'lucide-react';
+import { Building2, Plus, Edit, X, Upload, ArrowLeft, Search, GraduationCap, Users, Trash2 } from 'lucide-react';
 import type { Database } from '../../types/database';
 import type { Institution, User } from '../../lib/types';
 
@@ -122,6 +122,18 @@ export function HallsManagement() {
       fetchData();
     } catch (error: any) {
       showToast.error(error.message || 'Failed to update hall status');
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete hall "${name}"?`)) return;
+    try {
+      const { error } = await api.delete(`/halls/${id}`);
+      if (error) throw error;
+      showToast.success('Hall deleted successfully');
+      fetchData();
+    } catch (error: any) {
+      showToast.error(error.message || 'Failed to delete hall');
     }
   };
 
@@ -304,12 +316,20 @@ export function HallsManagement() {
                     </button>
                     <button
                       onClick={() => handleToggleActive(hall)}
-                      className={`flex-1 px-3 py-2 rounded-md transition-colors ${hall.is_active
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-green-600 text-white hover:bg-green-700'
+                      className={`px-3 py-2 rounded-md transition-colors text-white ${hall.is_active
+                        ? 'bg-amber-500 hover:bg-amber-600'
+                        : 'bg-green-600 hover:bg-green-700'
                         }`}
+                      title={hall.is_active ? 'Deactivate' : 'Activate'}
                     >
-                      {hall.is_active ? 'Deactivate' : 'Activate'}
+                      {hall.is_active ? 'Pause' : 'Activate'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(hall.id, hall.name)}
+                      className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                      title="Delete Hall"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

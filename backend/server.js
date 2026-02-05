@@ -481,10 +481,23 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
 
 app.put('/api/users/:id', authenticateToken, async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
-    const { full_name, role, department_id, institution_id, password } = req.body;
+    const { full_name, role, department_id, institution_id, password, email } = req.body;
     try {
+        // Validation: Check if email is being changed and if it's unique
+        if (email) {
+            const [existing] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, req.params.id]);
+            if (existing.length > 0) {
+                return res.status(409).json({ error: 'Email already in use by another user' });
+            }
+        }
+
         let query = 'UPDATE users SET full_name = ?, role = ?, department_id = ?, institution_id = ?';
         const params = [full_name, role, department_id || null, institution_id || null];
+
+        if (email) {
+            query += ', email = ?';
+            params.push(email);
+        }
 
         if (password && password.trim() !== '') {
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -505,23 +518,35 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
 app.delete('/api/users/:id', authenticateToken, async (req, res) => {
     if (req.user.role !== 'super_admin') return res.sendStatus(403);
     try {
-        // Prevent deleting self? Optional but good practice.
+        // Prevent deleting self
         if (req.params.id === req.user.id) {
             return res.status(400).json({ error: 'Cannot delete your own account' });
         }
+
+        // CASCADE DELETE: Delete all associated bookings first
+        await pool.query('DELETE FROM bookings WHERE user_id = ?', [req.params.id]);
+
+        // Then delete the user
+        await pool.query('DELETE FROM users WHERE id = ?', [req.params.id]);
+
+        res.json({ message: 'User and associated data deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/halls/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.sendStatus(403);
+    try {
         // Check for dependencies (Bookings)
-        const [bookings] = await pool.query('SELECT id FROM bookings WHERE user_id = ? LIMIT 1', [req.params.id]);
+        const [bookings] = await pool.query('SELECT id FROM bookings WHERE hall_id = ? LIMIT 1', [req.params.id]);
         if (bookings.length > 0) {
-            return res.status(409).json({ error: 'Cannot delete user: User has associated bookings. Please reassign or delete bookings first.' });
+            return res.status(409).json({ error: 'Cannot delete hall: Hall has associated bookings.' });
         }
 
-        await pool.query('DELETE FROM users WHERE id = ?', [req.params.id]);
-        res.json({ message: 'User deleted successfully' });
+        await pool.query('DELETE FROM halls WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Hall deleted successfully' });
     } catch (error) {
-        // Handle FK constraint error if missed above
-        if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-            return res.status(409).json({ error: 'Cannot delete user due to existing associated records.' });
-        }
         res.status(500).json({ error: error.message });
     }
 });
