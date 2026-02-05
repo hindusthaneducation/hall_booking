@@ -415,7 +415,7 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
 
                                             {booking.final_file_url && (
                                                 <button
-                                                    onClick={() => downloadFile(booking.final_file_url!, 'final_design_asset')}
+                                                    onClick={() => downloadFile(booking.final_file_url!.startsWith('http') ? booking.final_file_url! : `${API_URL}${booking.final_file_url}`)}
                                                     className="w-full flex items-center p-2 text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors"
                                                 >
                                                     <Download className="w-4 h-4 mr-2" />
