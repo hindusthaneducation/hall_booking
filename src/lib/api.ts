@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+export const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 // In production, we should avoid localhost default if possible, or ensure env var is set.
 // For now, keeping fallback is safe for local dev, but ensuring VITE_API_BASE_URL is used.
 

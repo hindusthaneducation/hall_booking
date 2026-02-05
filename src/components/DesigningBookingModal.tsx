@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { X, Building2, Calendar, Clock, User, School, MapPin, Phone, Briefcase, FileText, Download } from 'lucide-react';
 import { downloadFile, formatDateLocal } from '../lib/utils';
+import { API_URL } from '../lib/api';
 import type { Database } from '../types/database';
 
 // Reusing the Booking type
@@ -32,7 +33,7 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
         // Upload using raw fetch for FormData handling
         try {
             const token = localStorage.getItem('token');
-            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+            const baseUrl = API_URL;
             const response = await fetch(`${baseUrl}/bookings/${booking.id}/final-design`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }, // No Content-Type, let browser set boundary
@@ -173,13 +174,13 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
                                         {booking.chief_guest_photo_url ? (
                                             <div className="relative group shrink-0">
                                                 <img
-                                                    src={booking.chief_guest_photo_url.startsWith('http') ? booking.chief_guest_photo_url : `http://localhost:5001/api${booking.chief_guest_photo_url}`}
+                                                    src={booking.chief_guest_photo_url.startsWith('http') ? booking.chief_guest_photo_url : `${API_URL}${booking.chief_guest_photo_url}`}
                                                     alt="Chief Guest"
                                                     className="w-24 h-24 object-cover rounded-lg shadow-md bg-gray-100"
                                                 />
                                                 <button
                                                     onClick={() => downloadFile(
-                                                        booking.chief_guest_photo_url?.startsWith('http') ? booking.chief_guest_photo_url : `http://localhost:5001/api${booking.chief_guest_photo_url}`,
+                                                        booking.chief_guest_photo_url?.startsWith('http') ? booking.chief_guest_photo_url : `${API_URL}${booking.chief_guest_photo_url}`,
                                                         `chief_guest_${booking.id}`
                                                     )}
                                                     className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg text-white"
@@ -215,13 +216,13 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
                                         {booking.event_partner_logo_url ? (
                                             <div className="relative group shrink-0">
                                                 <img
-                                                    src={booking.event_partner_logo_url.startsWith('http') ? booking.event_partner_logo_url : `http://localhost:5001/api${booking.event_partner_logo_url}`}
+                                                    src={booking.event_partner_logo_url.startsWith('http') ? booking.event_partner_logo_url : `${API_URL}${booking.event_partner_logo_url}`}
                                                     alt="Partner Logo"
                                                     className="w-24 h-24 object-contain align-middle rounded-lg bg-white border border-gray-100 p-1"
                                                 />
                                                 <button
                                                     onClick={() => downloadFile(
-                                                        booking.event_partner_logo_url?.startsWith('http') ? booking.event_partner_logo_url : `http://localhost:5001/api${booking.event_partner_logo_url}`,
+                                                        booking.event_partner_logo_url?.startsWith('http') ? booking.event_partner_logo_url : `${API_URL}${booking.event_partner_logo_url}`,
                                                         `partner_logo_${booking.id}`
                                                     )}
                                                     className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg text-white"
@@ -260,7 +261,7 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
                                     <button
                                         key={idx}
                                         onClick={() => downloadFile(
-                                            url.startsWith('http') ? url : `http://localhost:5001/api${url}`,
+                                            url.startsWith('http') ? url : `${API_URL}${url}`,
                                             `attachment_${idx + 1}_${booking.id}`
                                         )}
                                         className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-brand-text rounded-lg text-sm font-medium transition-colors border border-gray-200"
@@ -312,7 +313,7 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
                                                 <p className="font-semibold text-gray-900">Final Design Uploaded</p>
                                                 <button
                                                     onClick={() => booking.final_file_url && downloadFile(
-                                                        booking.final_file_url.startsWith('http') ? booking.final_file_url : `http://localhost:5001/api${booking.final_file_url}`,
+                                                        booking.final_file_url.startsWith('http') ? booking.final_file_url : `${API_URL}${booking.final_file_url}`,
                                                         `final_design_${booking.id}`
                                                     )}
                                                     className="text-sm text-green-600 hover:text-green-700 font-medium hover:underline flex items-center mt-1"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../../lib/api';
+import { api, API_URL } from '../../lib/api';
 import { downloadFile } from '../../lib/utils';
 import { showToast } from '../../components/Toast';
 import { Building2, Calendar, Clock, FileText, User, School, Search } from 'lucide-react';
@@ -311,13 +311,13 @@ export function Approvals() {
                           {selectedBooking.chief_guest_photo_url && (
                             <div className="flex-shrink-0 group relative">
                               <img
-                                src={selectedBooking.chief_guest_photo_url.startsWith('http') ? selectedBooking.chief_guest_photo_url : `http://localhost:5001/api${selectedBooking.chief_guest_photo_url}`}
+                                src={selectedBooking.chief_guest_photo_url.startsWith('http') ? selectedBooking.chief_guest_photo_url : `${API_URL}${selectedBooking.chief_guest_photo_url}`}
                                 alt="Chief Guest"
                                 className="w-20 h-20 object-cover rounded shadow-sm"
                               />
                               <button
                                 onClick={() => downloadFile(
-                                  selectedBooking.chief_guest_photo_url?.startsWith('http') ? selectedBooking.chief_guest_photo_url : `http://localhost:5001/api${selectedBooking.chief_guest_photo_url}`,
+                                  selectedBooking.chief_guest_photo_url?.startsWith('http') ? selectedBooking.chief_guest_photo_url : `${API_URL}${selectedBooking.chief_guest_photo_url}`,
                                   `chief_guest_${selectedBooking.id}`
                                 )}
                                 className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 rounded cursor-pointer border-none"
@@ -347,13 +347,13 @@ export function Approvals() {
                           {selectedBooking.event_partner_logo_url && (
                             <div className="flex-shrink-0 group relative">
                               <img
-                                src={selectedBooking.event_partner_logo_url.startsWith('http') ? selectedBooking.event_partner_logo_url : `http://localhost:5001/api${selectedBooking.event_partner_logo_url}`}
+                                src={selectedBooking.event_partner_logo_url.startsWith('http') ? selectedBooking.event_partner_logo_url : `${API_URL}${selectedBooking.event_partner_logo_url}`}
                                 alt="Partner Logo"
                                 className="w-20 h-20 object-contain rounded bg-white border border-gray-200"
                               />
                               <button
                                 onClick={() => downloadFile(
-                                  selectedBooking.event_partner_logo_url?.startsWith('http') ? selectedBooking.event_partner_logo_url : `http://localhost:5001/api${selectedBooking.event_partner_logo_url}`,
+                                  selectedBooking.event_partner_logo_url?.startsWith('http') ? selectedBooking.event_partner_logo_url : `${API_URL}${selectedBooking.event_partner_logo_url}`,
                                   `partner_logo_${selectedBooking.id}`
                                 )}
                                 className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 rounded cursor-pointer border-none"
@@ -383,7 +383,7 @@ export function Approvals() {
                             <li key={idx}>
                               <button
                                 onClick={() => downloadFile(
-                                  url.startsWith('http') ? url : `http://localhost:5001/api${url}`,
+                                  url.startsWith('http') ? url : `${API_URL}${url}`,
                                   `attachment_${idx + 1}_${selectedBooking.id}`
                                 )}
                                 className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center group cursor-pointer bg-transparent border-none p-0"

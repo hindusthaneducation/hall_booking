@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../../lib/api';
+import { api, API_URL } from '../../lib/api';
 import { Building2, Calendar, Clock, Filter, Download, Search } from 'lucide-react';
 import type { Database } from '../../types/database';
 import { EventDetailsModal } from '../../components/EventDetailsModal';
@@ -327,7 +327,7 @@ export function AllBookings() {
                             {booking.final_file_url && (
                               <span className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1" onClick={(e) => {
                                 e.stopPropagation();
-                                window.open(booking.final_file_url?.startsWith('http') ? booking.final_file_url : `http://localhost:5001/api${booking.final_file_url}`, '_blank');
+                                window.open(booking.final_file_url?.startsWith('http') ? booking.final_file_url : `${API_URL}${booking.final_file_url}`, '_blank');
                               }}>
                                 <Download className="w-3 h-3" /> Asset
                               </span>

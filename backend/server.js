@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const frontendUrl = process.env.FRONTEND_URL;
 const allowedOrigins = [
     frontendUrl,
     frontendUrl.replace(/\/$/, ''),
@@ -64,14 +64,14 @@ cron.schedule('0 0 * * *', async () => {
     console.log('⏰ Running daily image cleanup...');
     try {
         const pool = mysql.createPool({
-            host: process.env.DB_HOST || 'localhost',
+            host: process.env.DB_HOST,
             user: process.env.DB_USER || 'root',
             password: process.env.DB_PASSWORD || '',
             database: process.env.DB_NAME || 'hall_booking_system',
             port: process.env.DB_PORT || 3306,
             ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
                 ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
-                : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+                : (process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined)
         });
 
         // Find bookings where event has passed (yesterday or earlier) and has guest photo
@@ -110,7 +110,7 @@ cron.schedule('0 0 * * *', async () => {
 
 
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'hall_booking_system',
@@ -123,7 +123,7 @@ const pool = mysql.createPool({
     connectTimeout: 60000, // Wait 60s before timeout
     ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
         ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
-        : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+        : (process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined)
 });
 
 // Test Database Connection
@@ -169,12 +169,12 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
 app.get('/api/admin/fix-schema', async (req, res) => {
     try {
         const pool = mysql.createPool({
-            host: process.env.DB_HOST || 'localhost',
+            host: process.env.DB_HOST,
             user: process.env.DB_USER || 'root',
             password: process.env.DB_PASSWORD || '',
             database: process.env.DB_NAME || 'hall_booking_system',
             port: process.env.DB_PORT || 3306,
-            ssl: process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined
+            ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
         });
 
         console.log('🔧 Manual schema fix triggered...');

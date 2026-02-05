@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../lib/api';
+import { api, API_URL } from '../../lib/api';
 import { CheckCircle, XCircle, FileText, ExternalLink } from 'lucide-react';
 import { showToast } from '../../components/Toast.tsx';
 
@@ -149,21 +149,21 @@ const PressReleaseApprovals = () => {
                                         <h4 className="text-sm font-medium text-gray-900 mb-3">Documents</h4>
                                         <div className="space-y-2">
                                             {req.english_writeup && (
-                                                <a href={`http://localhost:5001${req.english_writeup}`} target="_blank" rel="noopener noreferrer" className="flex items-center p-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                                                <a href={`${API_URL}${req.english_writeup}`} target="_blank" rel="noopener noreferrer" className="flex items-center p-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
                                                     <FileText className="w-4 h-4 mr-2" />
                                                     English Write-up
                                                     <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
                                                 </a>
                                             )}
                                             {req.tamil_writeup && (
-                                                <a href={`http://localhost:5001${req.tamil_writeup}`} target="_blank" rel="noopener noreferrer" className="flex items-center p-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                                                <a href={`${API_URL}${req.tamil_writeup}`} target="_blank" rel="noopener noreferrer" className="flex items-center p-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
                                                     <FileText className="w-4 h-4 mr-2" />
                                                     Tamil Write-up
                                                     <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
                                                 </a>
                                             )}
                                             {req.photo_description && (
-                                                <a href={`http://localhost:5001${req.photo_description}`} target="_blank" rel="noopener noreferrer" className="flex items-center p-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                                                <a href={`${API_URL}${req.photo_description}`} target="_blank" rel="noopener noreferrer" className="flex items-center p-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
                                                     <FileText className="w-4 h-4 mr-2" />
                                                     Photo Description
                                                     <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
@@ -176,8 +176,8 @@ const PressReleaseApprovals = () => {
                                         <h4 className="text-sm font-medium text-gray-900 mb-3">Photos ({parsePhotos(req.photos).length})</h4>
                                         <div className="grid grid-cols-4 gap-2">
                                             {parsePhotos(req.photos).map((photo: string, index: number) => (
-                                                <a key={index} href={`http://localhost:5001${photo}`} target="_blank" rel="noopener noreferrer" className="block aspect-square relative group">
-                                                    <img src={`http://localhost:5001${photo}`} alt={`Photo ${index + 1}`} className="w-full h-full object-cover rounded shadow-sm" />
+                                                <a key={index} href={`${API_URL}${photo}`} target="_blank" rel="noopener noreferrer" className="block aspect-square relative group">
+                                                    <img src={`${API_URL}${photo}`} alt={`Photo ${index + 1}`} className="w-full h-full object-cover rounded shadow-sm" />
                                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
                                                         <ExternalLink className="text-white w-5 h-5" />
                                                     </div>

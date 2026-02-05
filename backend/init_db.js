@@ -32,7 +32,7 @@ export async function initDB() {
         // Try connecting directly to the database first (fast path for cloud/shared hosting)
         try {
             const directConnection = await mysql.createConnection({
-                host: process.env.DB_HOST || 'localhost',
+                host: process.env.DB_HOST,
                 user: process.env.DB_USER || 'root',
                 password: process.env.DB_PASSWORD || '',
                 database: dbName,
@@ -40,7 +40,7 @@ export async function initDB() {
                 connectTimeout: 60000,
                 ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
                     ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
-                    : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+                    : (process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined)
             });
             await directConnection.end();
             console.log(`✅ Successfully connected to existing database '${dbName}'`);
@@ -49,14 +49,14 @@ export async function initDB() {
             if (err.code === 'BAD_DB_ERROR' || err.code === 'ER_BAD_DB_ERROR') {
                 console.log(`database '${dbName}' not found, attempting to create...`);
                 const rootConnection = await mysql.createConnection({
-                    host: process.env.DB_HOST || 'localhost',
+                    host: process.env.DB_HOST,
                     user: process.env.DB_USER || 'root',
                     password: process.env.DB_PASSWORD || '',
                     port: process.env.DB_PORT || 3306,
                     connectTimeout: 60000,
                     ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
                         ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
-                        : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+                        : (process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined)
                 });
                 try {
                     await rootConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
@@ -72,7 +72,7 @@ export async function initDB() {
 
         // Connect to DB to run schema
         const pool = mysql.createPool({
-            host: process.env.DB_HOST || 'localhost',
+            host: process.env.DB_HOST,
             user: process.env.DB_USER || 'root',
             password: process.env.DB_PASSWORD || '',
             database: dbName,
@@ -80,7 +80,7 @@ export async function initDB() {
             connectTimeout: 60000,
             ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
                 ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
-                : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined),
+                : (process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined),
             multipleStatements: true
         });
 
@@ -100,14 +100,14 @@ export async function initDB() {
 
         // Separate migration step for existing tables
         const migrationPool = mysql.createPool({
-            host: process.env.DB_HOST || 'localhost',
+            host: process.env.DB_HOST,
             user: process.env.DB_USER || 'root',
             password: process.env.DB_PASSWORD || '',
             database: dbName,
             port: process.env.DB_PORT || 3306,
             ssl: fs.existsSync(path.join(__dirname, 'ca.pem'))
                 ? { ca: fs.readFileSync(path.join(__dirname, 'ca.pem')) }
-                : (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : undefined)
+                : (process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined)
         });
 
         try {

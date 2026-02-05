@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../lib/api';
 import HindusthanLogo from '../images/hindusthan_logo.webp';
 
 interface ImageWithFallbackProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
@@ -24,9 +25,9 @@ export function ImageWithFallback({
 
         let finalSrc = src;
         if (src.startsWith('/')) {
-            finalSrc = `${import.meta.env.VITE_API_BASE_URL}${src}`;
+            finalSrc = `${API_URL}${src}`;
         } else if (!src.startsWith('http') && !src.startsWith('blob:') && !src.startsWith('data:')) {
-            finalSrc = `${import.meta.env.VITE_API_BASE_URL}/${src}`;
+            finalSrc = `${API_URL}/${src}`;
         }
 
         setImgSrc(finalSrc);

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Building2, Trash2, Edit2, Save, Download, ExternalLink } from 'lucide-react';
 import type { Database } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
-import { api } from '../lib/api';
+import { api, API_URL } from '../lib/api';
 import { showToast } from './Toast';
 import { downloadFile } from '../lib/utils';
 
@@ -364,7 +364,7 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
                                             <div className="flex gap-4 items-start">
                                                 {booking.chief_guest_photo_url && (
                                                     <img
-                                                        src={booking.chief_guest_photo_url.startsWith('http') ? booking.chief_guest_photo_url : `http://localhost:5001/api${booking.chief_guest_photo_url}`}
+                                                        src={booking.chief_guest_photo_url.startsWith('http') ? booking.chief_guest_photo_url : `${API_URL}${booking.chief_guest_photo_url}`}
                                                         alt="Chief Guest"
                                                         className="w-16 h-16 object-cover rounded shadow-sm"
                                                     />
@@ -385,7 +385,7 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
                                             <div className="flex gap-4 items-start">
                                                 {booking.event_partner_logo_url && (
                                                     <img
-                                                        src={booking.event_partner_logo_url.startsWith('http') ? booking.event_partner_logo_url : `http://localhost:5001/api${booking.event_partner_logo_url}`}
+                                                        src={booking.event_partner_logo_url.startsWith('http') ? booking.event_partner_logo_url : `${API_URL}${booking.event_partner_logo_url}`}
                                                         alt="Partner Logo"
                                                         className="w-16 h-16 object-contain rounded border border-gray-100"
                                                     />
@@ -405,7 +405,7 @@ export function EventDetailsModal({ booking, onClose, onUpdate }: EventDetailsMo
                                             {booking.files_urls && booking.files_urls.map((url, idx) => (
                                                 <button
                                                     key={idx}
-                                                    onClick={() => downloadFile(url.startsWith('http') ? url : `http://localhost:5001/api${url}`, `attachment_${idx + 1}`)}
+                                                    onClick={() => downloadFile(url.startsWith('http') ? url : `${API_URL}${url}`, `attachment_${idx + 1}`)}
                                                     className="w-full flex items-center p-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors"
                                                 >
                                                     <Save className="w-4 h-4 mr-2 text-gray-400" />
