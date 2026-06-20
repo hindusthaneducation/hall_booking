@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import { initDB } from './init_db.js';
 import { seed } from './seed.js';
 import { sendEmail, getBookingTemplate, verifyConnection } from './mailer.js';
+import { sendWhatsApp, getWhatsAppMessage } from './whatsapp.js';
 import cron from 'node-cron';
 
 
@@ -144,6 +145,99 @@ pool.getConnection()
     .catch(err => {
         console.error('❌ Database connection failed:', err.message);
     });
+
+// Press Release Submission Remembrance/Reminder (Runs every 30 minutes)
+cron.schedule('*/30 * * * *', async () => {
+    console.log('⏰ Running press release reminder...');
+    try {
+        // Query database for approved bookings that have finished, don't have a press release, and haven't had a reminder sent yet
+        const [bookings] = await pool.query(`
+            SELECT b.id, b.event_title, DATE_FORMAT(b.booking_date, '%Y-%m-%d') as booking_date, b.event_time, b.contact_no,
+                   u.email, u.full_name as user_name, h.name as hall_name
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN halls h ON b.hall_id = h.id
+            LEFT JOIN press_releases pr ON b.id = pr.booking_id
+            WHERE b.status = 'approved'
+              AND pr.id IS NULL
+              AND b.press_release_reminder_sent = FALSE
+              AND (
+                  b.booking_date < CURDATE()
+                  OR (b.booking_date = CURDATE() AND b.end_time <= CURTIME())
+              )
+        `);
+
+        if (bookings.length > 0) {
+            console.log(`📝 Sending ${bookings.length} press release reminders...`);
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173/';
+            const submission_url = `${frontendUrl}press-release`;
+
+            // Retrieve all Press Release Team users
+            const [prTeam] = await pool.query('SELECT email FROM users WHERE role = "press_release_team"');
+
+            for (const booking of bookings) {
+                const emailData = {
+                    ...booking,
+                    submission_url
+                };
+
+                const html = getBookingTemplate('press_release_reminder', emailData);
+                
+                // Send Email to Department User
+                sendEmail(booking.email, `Press Release Reminder: ${booking.event_title} 📝`, html).catch(err => console.error(err));
+
+                // Send WhatsApp to Department User if contact_no is present
+                if (booking.contact_no) {
+                    const wsMsg = getWhatsAppMessage('press_release_reminder', emailData);
+                    sendWhatsApp(booking.contact_no, wsMsg).catch(err => console.error('WhatsApp send failed:', err));
+                }
+
+                // Send Email copy to Press Release Team (no WhatsApp)
+                if (prTeam.length > 0) {
+                    const prTeamHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                        <div style="background-color: #f59e0b; padding: 20px; text-align: center;">
+                            <h1 style="color: white; margin: 0;">Press Release Pending</h1>
+                        </div>
+                        <div style="padding: 20px;">
+                            <p>Dear Press Release Team,</p>
+                            <p>The following event has completed, and the department user has been reminded to upload the English/Tamil write-up and photos to the portal.</p>
+                            
+                            <div style="background-color: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                                <h3 style="margin-top: 0; color: #374151;">Event Details:</h3>
+                                <ul style="list-style: none; padding: 0; margin: 0; color: #4b5563;">
+                                    <li style="margin-bottom: 8px;">🏛️ <strong>Hall:</strong> ${booking.hall_name}</li>
+                                    <li style="margin-bottom: 8px;">📅 <strong>Date:</strong> ${booking.booking_date}</li>
+                                    <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${booking.event_time}</li>
+                                    <li style="margin-bottom: 8px;">📝 <strong>Event:</strong> ${booking.event_title}</li>
+                                    <li style="margin-bottom: 8px;">👤 <strong>Coordinator:</strong> ${booking.user_name}</li>
+                                </ul>
+                            </div>
+                            
+                            <p style="color: #6b7280; font-size: 14px;">Once submitted, you will find it in your dashboard pending review.</p>
+                        </div>
+                        <div style="background-color: #f3f4f6; padding: 15px; text-align: center; color: #9ca3af; font-size: 12px;">
+                            Hindusthan Educational Institutions
+                        </div>
+                    </div>
+                    `;
+
+                    for (const prUser of prTeam) {
+                        if (prUser.email) {
+                            sendEmail(prUser.email, `Press Release Pending: ${booking.event_title}`, prTeamHtml)
+                                .catch(err => console.error('Failed to notify press release team member:', err));
+                        }
+                    }
+                }
+
+                // Mark reminder as sent in DB
+                await pool.query('UPDATE bookings SET press_release_reminder_sent = TRUE WHERE id = ?', [booking.id]);
+            }
+        }
+    } catch (err) {
+        console.error('❌ Press release reminder error:', err);
+    }
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -711,6 +805,11 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
     } = req.body;
     const id = uuidv4();
 
+    // Input validation for contact number
+    if (!contact_no || contact_no.trim() === '') {
+        return res.status(400).json({ error: 'Contact No (WhatsApp number) is required.' });
+    }
+
     // Input validation for times
     if (!start_time || !end_time) {
         return res.status(400).json({ error: 'Start time and End time are required.' });
@@ -786,9 +885,10 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
         );
 
 
-        // Fetch hall name for email
-        const [hRows] = await pool.query('SELECT name FROM halls WHERE id = ?', [hall_id]);
+        // Fetch hall name and institution_id for email
+        const [hRows] = await pool.query('SELECT name, institution_id FROM halls WHERE id = ?', [hall_id]);
         const hallName = hRows.length > 0 ? hRows[0].name : 'Hall';
+        const institutionId = hRows.length > 0 ? hRows[0].institution_id : null;
 
         const emailData = {
             user_name: req.user.full_name,
@@ -811,11 +911,81 @@ app.post('/api/bookings', authenticateToken, async (req, res) => {
                 const finalHtml = getBookingTemplate(initialStatus, emailData);
 
                 sendEmail(uRows[0].email, `Booking Receipt: ${event_title}`, finalHtml).catch(err => console.error('Email send failed:', err));
+                
+                if (contact_no) {
+                    const wsMsg = getWhatsAppMessage(initialStatus, emailData);
+                    sendWhatsApp(contact_no, wsMsg).catch(err => console.error('WhatsApp send failed:', err));
+                }
             } else {
                 console.warn('⚠️ No email found for user in DB, skipping notification.');
             }
         } catch (e) {
             console.error('Failed to fetch user email:', e);
+        }
+
+        // Notify Super Admins and the Principal of the specific institution if booking is requested by department user (status is pending)
+        if (req.user.role === 'department_user') {
+            try {
+                const [adminRows] = await pool.query('SELECT email, full_name FROM users WHERE role = "super_admin"');
+                
+                // Fetch Principals of the specific institution
+                let principalRows = [];
+                if (institutionId) {
+                    const [pRows] = await pool.query('SELECT email, full_name FROM users WHERE role = "principal" AND institution_id = ?', [institutionId]);
+                    principalRows = pRows;
+                }
+
+                if (adminRows.length > 0 || principalRows.length > 0) {
+                    const approvalsUrl = `${(frontendUrl || 'http://localhost:5173/').replace(/\/$/, '')}/approvals`;
+                    const adminHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                        <div style="background-color: #f59e0b; padding: 20px; text-align: center;">
+                            <h1 style="color: white; margin: 0;">New Booking Request</h1>
+                        </div>
+                        <div style="padding: 20px;">
+                            <p>Dear Administrator / Principal,</p>
+                            <p>A new booking request has been submitted by a department user and is pending approval. You can accept or reject this request by clicking the button below.</p>
+                            
+                            <div style="background-color: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                                <h3 style="margin-top: 0; color: #374151;">Details:</h3>
+                                <ul style="list-style: none; padding: 0; margin: 0; color: #4b5563;">
+                                    <li style="margin-bottom: 8px;">👤 <strong>Requested By:</strong> ${emailData.user_name}</li>
+                                    <li style="margin-bottom: 8px;">📅 <strong>Date:</strong> ${booking_date}</li>
+                                    <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${event_time}</li>
+                                    <li style="margin-bottom: 8px;">🏛️ <strong>Hall:</strong> ${hallName}</li>
+                                    <li style="margin-bottom: 8px;">📝 <strong>Event:</strong> ${event_title}</li>
+                                </ul>
+                            </div>
+                            
+                            <div style="text-align: center; margin: 25px 0;">
+                                <a href="${approvalsUrl}" style="display: inline-block; background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.4);">Approve / Reject Request</a>
+                            </div>
+                        </div>
+                        <div style="background-color: #f3f4f6; padding: 15px; text-align: center; color: #9ca3af; font-size: 12px;">
+                            Hindusthan Educational Institutions
+                        </div>
+                    </div>
+                    `;
+
+                    // Notify Super Admins
+                    for (const admin of adminRows) {
+                        if (admin.email) {
+                            sendEmail(admin.email, `New Booking Request: ${event_title}`, adminHtml)
+                                .catch(err => console.error('Failed to notify super admin:', err));
+                        }
+                    }
+
+                    // Notify Principals of the specific institution
+                    for (const principal of principalRows) {
+                        if (principal.email) {
+                            sendEmail(principal.email, `New Booking Request: ${event_title}`, adminHtml)
+                                .catch(err => console.error('Failed to notify principal:', err));
+                        }
+                    }
+                }
+            } catch (notifyErr) {
+                console.error('Failed to retrieve administrators for notification:', notifyErr);
+            }
         }
 
         res.status(201).json({ message: initialStatus === 'approved' ? 'Hall blocked successfully' : 'Booking requested' });
@@ -834,29 +1004,8 @@ app.patch('/api/bookings/:id/status', authenticateToken, async (req, res) => {
                 [status, rejection_reason || null, req.user.id, req.params.id]
             );
 
-            // Fetch details for email
-            // Fetch details for email
-            const [bRows] = await pool.query(`
-                SELECT b.booking_date, b.event_title, b.event_time, b.rejection_reason,
-                       u.email, u.full_name as user_name, h.name as hall_name
-                FROM bookings b
-                JOIN users u ON b.user_id = u.id
-                JOIN halls h ON b.hall_id = h.id
-                WHERE b.id = ?
-            `, [req.params.id]);
-
-            if (bRows.length > 0) {
-                const booking = bRows[0];
-                const html = getBookingTemplate(status, booking);
-
-                // Dynamic Subject based on Status
-                let subject = `Booking Update: ${booking.event_title}`;
-                if (status === 'approved') subject = `Booking Approved: ${booking.event_title} 🎉`;
-                if (status === 'rejected') subject = `Booking Rejected: ${booking.event_title}`;
-
-                // Don't await email to prevent blocking response
-                sendEmail(booking.email, subject, html);
-            }
+            // Notify status change
+            triggerStatusNotification(req.params.id, status, rejection_reason);
 
             res.json({ message: 'Booking updated' });
         } catch (error) {
@@ -867,6 +1016,77 @@ app.patch('/api/bookings/:id/status', authenticateToken, async (req, res) => {
     }
 });
 
+const triggerPhotographyNotification = async (bookingId, driveLink) => {
+    try {
+        const [bRows] = await pool.query(`
+            SELECT b.booking_date, b.event_title, b.event_time, b.contact_no,
+                   u.email, u.full_name as user_name, h.name as hall_name
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN halls h ON b.hall_id = h.id
+            WHERE b.id = ?
+        `, [bookingId]);
+
+        if (bRows.length > 0) {
+            const booking = bRows[0];
+            const emailData = {
+                ...booking,
+                photography_drive_link: driveLink
+            };
+
+            const html = getBookingTemplate('photos_uploaded', emailData);
+            
+            // Send Email
+            sendEmail(booking.email, `Event Photos Uploaded: ${booking.event_title} 📸`, html).catch(err => console.error(err));
+
+            // Send WhatsApp if contact_no is present
+            if (booking.contact_no) {
+                const wsMsg = getWhatsAppMessage('photos_uploaded', emailData);
+                sendWhatsApp(booking.contact_no, wsMsg).catch(err => console.error('WhatsApp send failed:', err));
+            }
+        }
+    } catch (err) {
+        console.error('Failed to send photography notification:', err);
+    }
+};
+
+const triggerStatusNotification = async (bookingId, status, rejectionReason = null) => {
+    try {
+        const [bRows] = await pool.query(`
+            SELECT b.booking_date, b.event_title, b.event_time, b.rejection_reason, b.contact_no,
+                   u.email, u.full_name as user_name, h.name as hall_name
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN halls h ON b.hall_id = h.id
+            WHERE b.id = ?
+        `, [bookingId]);
+
+        if (bRows.length > 0) {
+            const booking = bRows[0];
+            if (rejectionReason) {
+                booking.rejection_reason = rejectionReason;
+            }
+            const html = getBookingTemplate(status, booking);
+
+            // Dynamic Subject based on Status
+            let subject = `Booking Update: ${booking.event_title}`;
+            if (status === 'approved') subject = `Booking Approved: ${booking.event_title} 🎉`;
+            if (status === 'rejected') subject = `Booking Rejected: ${booking.event_title}`;
+
+            // Send Email
+            sendEmail(booking.email, subject, html).catch(err => console.error('Email send failed:', err));
+
+            // Send WhatsApp if contact_no is present
+            if (booking.contact_no) {
+                const wsMsg = getWhatsAppMessage(status, booking);
+                sendWhatsApp(booking.contact_no, wsMsg).catch(err => console.error('WhatsApp send failed:', err));
+            }
+        }
+    } catch (err) {
+        console.error('Failed to send status notification:', err);
+    }
+};
+
 app.put('/api/bookings/:id', authenticateToken, async (req, res) => {
     const { status, remarks, photography_drive_link } = req.body;
     const { id } = req.params;
@@ -876,6 +1096,7 @@ app.put('/api/bookings/:id', authenticateToken, async (req, res) => {
         if (req.user.role === 'photography_team') {
             if (photography_drive_link !== undefined) {
                 await pool.query('UPDATE bookings SET photography_drive_link = ? WHERE id = ?', [photography_drive_link, id]);
+                triggerPhotographyNotification(id, photography_drive_link);
                 return res.json({ message: 'Drive link updated' });
             }
             return res.status(403).json({ error: 'Photography team can only update drive link' });
@@ -891,7 +1112,7 @@ app.put('/api/bookings/:id', authenticateToken, async (req, res) => {
                 values.push(status);
             }
             if (remarks !== undefined) {
-                updates.push('remarks = ?');
+                updates.push('rejection_reason = ?');
                 values.push(remarks);
             }
             if (photography_drive_link !== undefined) {
@@ -902,6 +1123,13 @@ app.put('/api/bookings/:id', authenticateToken, async (req, res) => {
             if (updates.length > 0) {
                 values.push(id);
                 await pool.query(`UPDATE bookings SET ${updates.join(', ')} WHERE id = ?`, values);
+                
+                if (photography_drive_link !== undefined) {
+                    triggerPhotographyNotification(id, photography_drive_link);
+                }
+                if (status) {
+                    triggerStatusNotification(id, status, remarks);
+                }
             }
             return res.json({ message: 'Booking updated' });
         }
@@ -927,6 +1155,39 @@ app.post('/api/bookings/:id/final-design', authenticateToken, upload.single('fil
             'UPDATE bookings SET final_file_url = ?, work_status = "completed" WHERE id = ?',
             [final_file_url, req.params.id]
         );
+
+        // Fetch details for email & whatsapp
+        const [bRows] = await pool.query(`
+            SELECT b.booking_date, b.event_title, b.event_time, b.contact_no,
+                   u.email, u.full_name as user_name, h.name as hall_name
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN halls h ON b.hall_id = h.id
+            WHERE b.id = ?
+        `, [req.params.id]);
+
+        if (bRows.length > 0) {
+            const booking = bRows[0];
+            const hostUrl = req.protocol + '://' + req.get('host');
+            const download_url = hostUrl + final_file_url;
+            
+            const emailData = {
+                ...booking,
+                download_url
+            };
+
+            const html = getBookingTemplate('design_completed', emailData);
+            
+            // Send Email (Don't await to avoid blocking response)
+            sendEmail(booking.email, `Design Assets Uploaded: ${booking.event_title} 🎨`, html).catch(err => console.error(err));
+
+            // Send WhatsApp if contact_no is present
+            if (booking.contact_no) {
+                const wsMsg = getWhatsAppMessage('design_completed', emailData);
+                sendWhatsApp(booking.contact_no, wsMsg).catch(err => console.error('WhatsApp send failed:', err));
+            }
+        }
+
         res.json({ message: 'Final design uploaded and work marked as completed', final_file_url });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1069,7 +1330,7 @@ app.put('/api/bookings/:id', authenticateToken, async (req, res) => {
 
         // Fetch details for email
         const [bRows] = await pool.query(`
-            SELECT b.booking_date, b.event_title, b.event_time, b.status,
+            SELECT b.booking_date, b.event_title, b.event_time, b.status, b.contact_no,
                 u.email, u.full_name as user_name, h.name as hall_name
             FROM bookings b
             JOIN users u ON b.user_id = u.id
@@ -1080,13 +1341,15 @@ app.put('/api/bookings/:id', authenticateToken, async (req, res) => {
         if (bRows.length > 0) {
             const booking = bRows[0];
             booking.reason = reason; // Add manual reason
-            const html = getBookingTemplate('updated', booking); // Need to handle 'updated' in template or reuse 'approved'
-            // 'updated' isn't in template yet. Let's use 'approved' but maybe title changes?
-            // User requested: "update any... mail send ok"
-            // I'll add 'updated' case to mailer.js separately or just send general update.
-            // For now, reuse 'approved' or 'pending' depending on status, but simply "Booking Details Updated".
+            const html = getBookingTemplate('updated', booking); 
 
             sendEmail(booking.email, `Booking Details Updated: ${booking.event_title} `, html).catch(e => console.error(e));
+
+            // Send WhatsApp if contact_no is present
+            if (booking.contact_no) {
+                const wsMsg = getWhatsAppMessage('updated', booking);
+                sendWhatsApp(booking.contact_no, wsMsg).catch(err => console.error('WhatsApp send failed:', err));
+            }
         }
 
         res.json({ message: 'Booking updated successfully' });
@@ -1100,9 +1363,9 @@ app.delete('/api/bookings/:id', authenticateToken, async (req, res) => {
     if (!['super_admin', 'principal'].includes(req.user.role)) return res.sendStatus(403);
 
     try {
-        // Fetch details BEFORE delete for email
+        // Fetch details BEFORE delete for email & whatsapp
         const [bRows] = await pool.query(`
-            SELECT b.event_title, u.email, u.full_name as user_name, h.name as hall_name, b.booking_date, b.event_time
+            SELECT b.event_title, b.contact_no, u.email, u.full_name as user_name, h.name as hall_name, b.booking_date, b.event_time
             FROM bookings b
             JOIN users u ON b.user_id = u.id
             JOIN halls h ON b.hall_id = h.id
@@ -1118,6 +1381,12 @@ app.delete('/api/bookings/:id', authenticateToken, async (req, res) => {
             booking.rejection_reason = req.body.reason ? `Cancelled by Admin: ${req.body.reason}` : "Cancelled by Administrator";
             const html = getBookingTemplate('rejected', booking);
             sendEmail(booking.email, `Booking Cancelled: ${booking.event_title} `, html).catch(e => console.error(e));
+
+            // Send WhatsApp if contact_no is present
+            if (booking.contact_no) {
+                const wsMsg = getWhatsAppMessage('cancelled', booking);
+                sendWhatsApp(booking.contact_no, wsMsg).catch(err => console.error('WhatsApp send failed:', err));
+            }
         }
 
         res.json({ message: 'Booking deleted successfully' });

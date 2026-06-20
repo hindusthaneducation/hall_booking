@@ -21,6 +21,7 @@ interface DesigningBookingModalProps {
 
 export function DesigningBookingModal({ booking, onClose }: DesigningBookingModalProps) {
     const [isUploading, setIsUploading] = useState(false);
+    const [showReupload, setShowReupload] = useState(false);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
@@ -50,6 +51,7 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
             booking.work_status = 'completed';
             booking.final_file_url = resData.final_file_url;
             alert('File uploaded successfully!');
+            setShowReupload(false);
         } catch (error) {
             console.error('Upload error:', error);
             alert('Failed to upload file.');
@@ -326,7 +328,7 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
                                                 </button>
                                             </div>
                                             <button
-                                                onClick={() => setIsUploading(true)}
+                                                onClick={() => setShowReupload(true)}
                                                 className="text-sm text-gray-400 hover:text-gray-600 underline"
                                             >
                                                 Re-upload
@@ -341,6 +343,7 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
                                                 <input
                                                     type="file"
                                                     onChange={handleFileUpload}
+                                                    onClick={(e) => { e.currentTarget.value = ''; }}
                                                     disabled={isUploading}
                                                     className="block w-full text-sm text-gray-500
                                                     file:mr-4 file:py-2 file:px-4
@@ -366,15 +369,22 @@ export function DesigningBookingModal({ booking, onClose }: DesigningBookingModa
                             </div>
 
                             {/* Re-upload Logic (Hidden unless state triggers it, handled by condition above mostly) */}
-                            {isUploading && booking.work_status === 'completed' && (
+                            {showReupload && booking.work_status === 'completed' && (
                                 <div className="mt-4 pt-4 border-t border-gray-200">
                                     <p className="text-sm font-medium text-gray-700 mb-2">Upload New Version:</p>
                                     <input
                                         type="file"
                                         onChange={handleFileUpload}
+                                        onClick={(e) => { e.currentTarget.value = ''; }}
                                         disabled={isUploading}
                                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-primary file:text-white hover:file:bg-brand-secondary"
                                     />
+                                    {isUploading && (
+                                        <div className="flex items-center text-brand-primary animate-pulse mt-2">
+                                            <Clock className="w-4 h-4 mr-2" />
+                                            <span>Uploading...</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

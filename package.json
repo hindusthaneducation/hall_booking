@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "server": "cd backend && node server.js",
+    "clear-db": "npm run clear-db --prefix backend",
     "postinstall": "npm install --prefix backend"
   },
   "dependencies": {

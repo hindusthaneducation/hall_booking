@@ -191,6 +191,18 @@ export async function initDB() {
         }
 
         try {
+            console.log('⏳ Checking for press_release_reminder_sent in bookings...');
+            await migrationPool.query('ALTER TABLE bookings ADD COLUMN press_release_reminder_sent BOOLEAN DEFAULT FALSE');
+            console.log('✅ press_release_reminder_sent column added.');
+        } catch (e) {
+            if (e.code === 'ER_DUP_FIELDNAME' || e.errno === 1060) {
+                console.log('✅ press_release_reminder_sent already exists.');
+            } else {
+                console.warn('⚠️ Could not add press_release_reminder_sent:', e.message);
+            }
+        }
+
+        try {
             console.log('⏳ Updating role ENUM for users to include photography_team...');
             // Note: We include designing_team from previous context, and add photography_team
             await migrationPool.query("ALTER TABLE users MODIFY COLUMN role ENUM('department_user', 'principal', 'super_admin', 'designing_team', 'photography_team', 'press_release_team') NOT NULL DEFAULT 'department_user'");

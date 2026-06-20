@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     files_urls JSON,
     approved_by VARCHAR(36),
     approved_at TIMESTAMP NULL,
+    press_release_reminder_sent BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE CASCADE,

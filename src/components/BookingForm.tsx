@@ -323,13 +323,20 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contact No</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact No (WhatsApp Number) <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.contactNo}
                   onChange={(e) => setFormData({ ...formData, contactNo: e.target.value })}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., 9876543210"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Note: A valid WhatsApp number is required to receive instant booking receipts and status updates.
+                </p>
               </div>
             </div>
 
@@ -364,6 +371,7 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
                       type="file"
                       accept="image/*"
                       onChange={(e) => setChiefGuestPhoto(e.target.files?.[0] || null)}
+                      onClick={(e) => { e.currentTarget.value = ''; }}
                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
                   </div>
@@ -392,6 +400,7 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
                     type="file"
                     accept="image/*"
                     onChange={(e) => setEventPartnerLogo(e.target.files?.[0] || null)}
+                    onClick={(e) => { e.currentTarget.value = ''; }}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
                 </div>
@@ -433,6 +442,7 @@ export function BookingForm({ hallId, hallName, date, departmentId, onClose, onS
                 <input
                   type="file"
                   multiple
+                  onClick={(e) => { e.currentTarget.value = ''; }}
                   onChange={(e) => {
                     if (e.target.files) {
                       const files = Array.from(e.target.files);
